@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お品書きエディタ</title> <!-- (v15) タイトル変更 -->
+    <title>お品書きエディタ</title> <!-- (v16) タイトル変更 -->
     
     <!-- ... (v12) 3種類のフォントを読み込む ... -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
@@ -33,12 +33,12 @@
             z-index: -1; 
             background-image: url('22691375.png'); 
             background-repeat: no-repeat;
-            background-position: center center;
+            background-position: left center; /* (v16) 左寄せを明記 */
             background-size: contain; 
             opacity: 0.7; 
             width: var(--h2-bg-size, 24px); 
             height: var(--h2-bg-size, 24px);
-            left: 0;
+            left: 0; /* (v16) 左端に配置 */
             top: 50%;
             transform: translateY(-50%); 
         }
@@ -68,7 +68,7 @@
         }
 
         /* --- フォームUIスタイル --- */
-        /* ... (v14) 変更なし ... */
+        /* ... (v15) 変更なし ... */
         .form-input {
             width: 100%; border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px;
         }
@@ -132,8 +132,6 @@
         }
         .sortable-ghost { opacity: 0.4; background: #cce7ff; }
         
-        /* (v15) form-input-mm は削除 */
-
         .mm-label { font-size: 0.875rem; color: #6b7280; flex-shrink: 0; }
         
         .font-size-label {
@@ -150,10 +148,9 @@
             width: 3.5rem; /* 56px */
             text-align: right; margin-right: 4px; flex-shrink: 0;
         }
-        /* (v15) キャンバスサイズ表示用の幅調整 */
         .line-height-display.w-20 {
             width: 5rem; /* 80px */
-            display: inline-block; /* text-alignを効かせるため */
+            display: inline-block; 
         }
     </style>
 </head>
@@ -301,7 +298,6 @@
         const canvasEl = document.getElementById('canvas');
         const previewContent = document.getElementById('canvas-content');
         const formTitle = document.getElementById('form-title');
-        // (v15) formCanvasWidth と formCanvasHeight を削除
         const categoriesFormList = document.getElementById('categories-form-list');
         const addCategoryBtn = document.getElementById('add-category-btn');
         const deleteSelectedBtn = document.getElementById('delete-selected-btn');
@@ -309,13 +305,13 @@
         const exportPdfBtn = document.getElementById('export-pdf-btn');
 
         // === 1. キャンバスサイズ更新 ===
+        // ... (v15) 変更なし ...
         function updateCanvasStyle() {
             const styles = menuData.styles;
             
-            // (v15) formFontFamily は renderForm で再取得されるため、ここでは参照しない
             const formFontFamily = document.getElementById('form-font-family');
             if (formFontFamily) {
-                 canvasEl.style.fontFamily = formFontFamily.value; // menuData.styles.fontFamily;
+                 canvasEl.style.fontFamily = formFontFamily.value; 
             } else {
                  canvasEl.style.fontFamily = menuData.styles.fontFamily;
             }
@@ -333,8 +329,7 @@
             canvasEl.style.height = `${heightPx}px`;
         }
 
-        // === 2. プレビュー内容生成 ===
-        // ... (v14) 変更なし ...
+        // === 2. プレビュー内容生成 === (v16 変更点)
         function renderPreview() {
             previewContent.innerHTML = ''; 
             const h1 = document.createElement('h1');
@@ -358,14 +353,16 @@
                 
                 const bgSize = category.fontSizeH2 * 1.2; 
                 h2.style.setProperty('--h2-bg-size', `${bgSize}px`); 
-                h2.style.paddingLeft = `${bgSize * 0.5}px`; 
+                // (v16) paddingLeft を (bgSize + 4) に変更 (画像の右側に文字が来るように)
+                h2.style.paddingLeft = `${bgSize + 4}px`; 
 
                 section.appendChild(h2);
                 
                 category.items.forEach(item => {
                     const p = document.createElement('p');
                     p.textContent = item.name;
-                    p.className = 'menu-item pl-4';
+                    // (v16) pl-4 から pl-8 に変更 (インデントを深くする)
+                    p.className = 'menu-item pl-8';
                     p.style.fontSize = `${item.fontSizeP}px`; 
                     section.appendChild(p);
                 });
@@ -373,14 +370,14 @@
             });
         }
 
-        // === 3. フォームを生成する関数 (v15 変更点) ===
+        // === 3. フォームを生成する関数 ===
+        // ... (v15) 変更なし ...
         function renderForm() {
             
             const svgMinus = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 12H6" /></svg>`;
             const svgPlus = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" /></svg>`;
             const svgTrash = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>`;
 
-            // (v15) 全体設定のHTMLを動的に挿入
             const globalSettingsDiv = document.querySelector('#form-wrapper .flex.flex-wrap.gap-x-6.gap-y-4');
             if (globalSettingsDiv) {
                 globalSettingsDiv.innerHTML = `
@@ -452,15 +449,13 @@
                 `;
             }
             
-            // (v15) 値をセット
             formTitle.value = menuData.title;
             const titleFontSizeDisplay = document.querySelector('#title-form-group .font-size-display');
             if (titleFontSizeDisplay) titleFontSizeDisplay.textContent = `${menuData.titleFontSize}px`;
 
-            const formFontFamily = document.getElementById('form-font-family'); // (v15) 再取得
+            const formFontFamily = document.getElementById('form-font-family'); 
             if (formFontFamily) formFontFamily.value = menuData.styles.fontFamily; 
             
-            // (v15) キャンバスサイズ表示
             const canvasWDisplay = document.querySelector('#global-style-canvas-w .line-height-display');
             if (canvasWDisplay) canvasWDisplay.textContent = menuData.styles.canvasWidth.toFixed(0) + ' mm';
             const canvasHDisplay = document.querySelector('#global-style-canvas-h .line-height-display');
@@ -472,7 +467,6 @@
             const pLineDisplay = document.querySelector('#global-style-p-line .line-height-display');
             if (pLineDisplay) pLineDisplay.textContent = menuData.styles.lineHeightP.toFixed(0) + 'px';
             
-            // (v15) 平均フォントサイズ計算 (H2)
             let totalH2 = 0;
             let countH2 = menuData.categories.length;
             const h2FontDisplay = document.querySelector('#global-style-h2-font .line-height-display');
@@ -484,7 +478,6 @@
                 if (h2FontDisplay) h2FontDisplay.textContent = 'N/A';
             }
 
-            // (v15) 平均フォントサイズ計算 (P)
             let totalP = 0;
             let countP = 0;
             menuData.categories.forEach(cat => {
@@ -501,7 +494,6 @@
                 if (pFontDisplay) pFontDisplay.textContent = 'N/A';
             }
 
-
             categoriesFormList.innerHTML = '';
 
             menuData.categories.forEach((category) => {
@@ -509,7 +501,6 @@
                 categoryDiv.className = 'border border-gray-300 rounded-lg p-4 mb-4 bg-white';
                 categoryDiv.dataset.id = category.id; 
 
-                // (v14) 個別削除ボタンを追加
                 categoryDiv.innerHTML = `
                     <div class="form-row">
                         <span class="drag-handle cat-handle">:::</span>
@@ -531,7 +522,6 @@
                     const itemDiv = document.createElement('div');
                     itemDiv.className = 'form-row';
                     itemDiv.dataset.id = item.id;
-                    // (v14) 個別削除ボタンを追加
                     itemDiv.innerHTML = `
                         <span class="drag-handle item-handle ml-4">:::</span>
                         <input type="checkbox" class="form-checkbox" data-item-id="${item.id}" ${item.isChecked ? 'checked' : ''}>
@@ -593,8 +583,7 @@
             renderForm();        
         }
         
-        // === 6. PDF出力関数 ===
-        // ... (v14) 変更なし ...
+        // === 6. PDF出力関数 === (v16 変更点)
         async function handleExportPDF() {
             exportPdfBtn.textContent = 'PDFを生成中...';
             exportPdfBtn.disabled = true;
@@ -608,20 +597,24 @@
                 const imgData = captureCanvas.toDataURL('image/png');
 
                 const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('p', 'mm', 'a4'); 
+                const doc = new jsPDF('p', 'mm', 'a4'); // A4 (210 x 297 mm)
 
                 const canvasWidthMM = menuData.styles.canvasWidth;
                 const canvasHeightMM = menuData.styles.canvasHeight;
                 
+                // (v16) 横方向の中央揃え
                 let totalWidth = canvasWidthMM * 2;
                 let marginX = (210 - totalWidth) / 2;
+                if (marginX < 0) { marginX = 0; }
                 
-                if (marginX < 0) {
-                    marginX = 0; 
-                }
+                // (v16) 縦方向の中央揃え
+                let marginY = (297 - canvasHeightMM) / 2;
+                if (marginY < 0) { marginY = 0; }
 
-                doc.addImage(imgData, 'PNG', marginX, 0, canvasWidthMM, canvasHeightMM);
-                doc.addImage(imgData, 'PNG', marginX + canvasWidthMM, 0, canvasWidthMM, canvasHeightMM);
+
+                // (v16) marginY を適用
+                doc.addImage(imgData, 'PNG', marginX, marginY, canvasWidthMM, canvasHeightMM);
+                doc.addImage(imgData, 'PNG', marginX + canvasWidthMM, marginY, canvasWidthMM, canvasHeightMM);
 
                 doc.save('お品書き.pdf');
 
@@ -634,10 +627,10 @@
             }
         }
 
-        // === 7. イベントリスナー (v15 変更点) ===
+        // === 7. イベントリスナー ===
+        // ... (v15) 変更なし ...
         function setupListeners() {
             
-            // --- Inputイベント ---
             formContentWrapper.addEventListener('input', (e) => {
                 const target = e.target;
                 
@@ -646,8 +639,6 @@
                     updateCanvasStyle(); 
                     return;
                 }
-                
-                // (v15) canvas width/height の input リスナーを削除
                 
                 if (target.id === 'form-title') { 
                     menuData.title = target.value; 
@@ -677,13 +668,10 @@
                 if (target.type === 'text') { renderPreview(); }
             });
             
-            // --- Clickイベント ---
             formContentWrapper.addEventListener('click', (e) => {
                 
-                // (v14) 個別削除ボタンの処理
                 const btnDelete = e.target.closest('.btn-control-danger');
                 if (btnDelete) {
-                    // ... (v14) 変更なし ...
                     const deleteCatId = btnDelete.dataset.deleteCatId;
                     const deleteItemId = btnDelete.dataset.deleteItemId;
 
@@ -702,7 +690,6 @@
                     }
                 }
                 
-                // (v15) スタイル変更ボタンの処理
                 const btnControl = e.target.closest('.btn-control');
                 if (btnControl) {
                     const target = btnControl; 
@@ -715,9 +702,8 @@
                         let fontSizeChanged = false; 
                         let lineHeightChanged = false; 
                         let renderAllNeeded = false; 
-                        let canvasSizeChanged = false; // (v15)
+                        let canvasSizeChanged = false; 
 
-                        // (v15) キャンバスサイズ変更
                         if (styleOp === 'canvas-w-inc') {
                             styles.canvasWidth = Math.min(105, styles.canvasWidth + 1); canvasSizeChanged = true;
                         }
@@ -733,14 +719,12 @@
 
                         if (canvasSizeChanged) {
                             updateCanvasStyle();
-                            // フォームの表示も更新
                             const canvasWDisplay = document.querySelector('#global-style-canvas-w .line-height-display');
                             if (canvasWDisplay) canvasWDisplay.textContent = styles.canvasWidth.toFixed(0) + ' mm';
                             const canvasHDisplay = document.querySelector('#global-style-canvas-h .line-height-display');
                             if (canvasHDisplay) canvasHDisplay.textContent = styles.canvasHeight.toFixed(0) + ' mm';
                         }
 
-                        // (v14) 行間変更
                         if (styleOp === 'h2-line-inc') { styles.lineHeightH2 += 1; lineHeightChanged = true; }
                         if (styleOp === 'h2-line-dec') { styles.lineHeightH2 = Math.max(8, styles.lineHeightH2 - 1); lineHeightChanged = true; }
                         if (styleOp === 'p-line-inc') { styles.lineHeightP += 1; lineHeightChanged = true; }
@@ -754,7 +738,6 @@
                             if (pLineDisplay) pLineDisplay.textContent = styles.lineHeightP.toFixed(0) + 'px';
                         }
                         
-                        // (v14) 個別フォント変更 (H1)
                         if (styleOp === 'h1-font-inc') {
                             menuData.titleFontSize += 1; fontSizeChanged = true;
                             const displayEl = target.closest('.form-row').querySelector('.font-size-display');
@@ -766,7 +749,6 @@
                             if (displayEl) displayEl.textContent = `${menuData.titleFontSize}px`;
                         }
 
-                        // (v14) 個別フォント変更 (H2)
                         if (catId && !itemId) {
                             const category = menuData.categories.find(c => c.id === catId);
                             if (category) {
@@ -780,7 +762,6 @@
                             }
                         }
 
-                        // (v14) 個別フォント変更 (P)
                         if (itemId) {
                             for (const category of menuData.categories) {
                                 const item = category.items.find(i => i.id === itemId);
@@ -797,7 +778,6 @@
                             }
                         }
                         
-                        // (v14) 一括フォント変更
                         if (styleOp === 'all-h2-font-inc') {
                             menuData.categories.forEach(cat => cat.fontSizeH2 += 1);
                             renderAllNeeded = true;
@@ -824,8 +804,6 @@
                     return; 
                 }
                 
-                // (v14) その他のボタン処理
-                // ... (v14) 変更なし ...
                 const originalTarget = e.target;
                 if (originalTarget.tagName !== 'BUTTON') return;
 
