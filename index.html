@@ -31,7 +31,7 @@
             content: '';
             position: absolute;
             z-index: -1; 
-            /* (v14) .jpg -> .png に修正 */
+            /* (v14) .png に修正 */
             background-image: url('22691375.png'); 
             background-repeat: no-repeat;
             /* (v16) left center に変更 */
@@ -41,12 +41,11 @@
             width: var(--h2-bg-size, 24px); 
             height: var(--h2-bg-size, 24px);
             left: 0; 
-            top: 50%;
-            transform: translateY(-50%); 
+            /* (v17) transform を削除 */
+            top: var(--h2-bg-top, 0px); /* JSで動的に計算 */
         }
 
         /* --- 基本レイアウト --- */
-        /* (v14) 変更なし */
         body {
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
             display: flex; flex-direction: column; height: 100vh;
@@ -71,7 +70,6 @@
         }
 
         /* --- フォームUIスタイル --- */
-        /* (v15) 変更なし */
         .form-input {
             width: 100%; border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px;
         }
@@ -322,7 +320,6 @@
         const exportPdfBtn = document.getElementById('export-pdf-btn');
 
         // === 1. キャンバスサイズ更新 ===
-        // ... (v15) 変更なし ...
         function updateCanvasStyle() {
             const styles = menuData.styles;
             
@@ -351,7 +348,7 @@
             canvasEl.style.height = `${heightPx}px`;
         }
 
-        // === 2. プレビュー内容生成 === (v17 変更点)
+        // === 2. プレビュー内容生成 === (v17 PDFズレ修正)
         function renderPreview() {
             previewContent.innerHTML = ''; 
             
@@ -376,11 +373,15 @@
                 h2.textContent = category.name;
                 h2.style.color = '#A4252A'; // (v2) 色変更
                 h2.style.fontSize = `${category.fontSizeH2}px`; // (v4) 個別サイズ
-                h2.style.lineHeight = styles.lineHeightH2 + 'px'; // (v10) px単位
                 
-                // (v16) 背景画像サイズとpaddingLeftの動的計算
+                const h2LineHeight = styles.lineHeightH2; // (v17) 行間の高さを取得
+                h2.style.lineHeight = h2LineHeight + 'px'; // (v10) px単位
+                
+                // (v17) 背景画像サイズとtopの動的計算 (transform -> top)
                 const bgSize = category.fontSizeH2 * 1.2; 
                 h2.style.setProperty('--h2-bg-size', `${bgSize}px`); 
+                // (行の高さ - 画像の高さ) / 2 = 中央揃えのためのtop位置
+                h2.style.setProperty('--h2-bg-top', `${(h2LineHeight - bgSize) / 2}px`);
                 h2.style.paddingLeft = `${bgSize + 4}px`; // (v16) 画像の右側に文字が来るよう調整
 
                 section.appendChild(h2);
@@ -389,7 +390,7 @@
                     const p = document.createElement('p');
                     p.textContent = item.name;
                     // (v17) pl-8 から pl-16 に変更 (インデントを倍にする)
-                    p.className = 'menu-item pl-16'; // (v16) pl-4 -> pl-8 (v17) pl-8 -> pl-16
+                    p.className = 'menu-item pl-16'; 
                     p.style.fontSize = `${item.fontSizeP}px`; // (v4) 個別サイズ
                     section.appendChild(p);
                 });
@@ -591,7 +592,6 @@
         }
         
         // === 4. SortableJS ===
-        // ... (v14) 変更なし ...
         function initSortable() {
             // カテゴリの並び替え
             new Sortable(categoriesFormList, {
@@ -627,7 +627,6 @@
         }
 
         // === 5. 再描画 ===
-        // ... (v14) 変更なし ...
         function renderAll() {
             updateCanvasStyle(); // 1. キャンバスサイズ・フォント適用
             renderPreview();     // 2. プレビュー内容更新
