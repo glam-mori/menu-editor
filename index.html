@@ -14,7 +14,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- (v18) jsPDFライブラリを削除 -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> -->
 
     <style>
         /* (v12) フォントの定義 */
@@ -216,8 +217,9 @@
 
             <!-- PDF出力ボタン -->
             <div class="mt-8 pt-6 border-t border-gray-300">
-                <button id="export-pdf-btn" class="btn btn-primary w-full text-lg py-3">
-                    PDFとして出力 (A4・2面)
+                <!-- (v18) ボタンの文言とIDを変更 -->
+                <button id="export-image-btn" class="btn btn-primary w-full text-lg py-3">
+                    高解像度 PNGで出力 (2面)
                 </button>
             </div>
 
@@ -317,7 +319,8 @@
         const addCategoryBtn = document.getElementById('add-category-btn');
         const deleteSelectedBtn = document.getElementById('delete-selected-btn');
         const formContentWrapper = document.getElementById('form-content-wrapper');
-        const exportPdfBtn = document.getElementById('export-pdf-btn');
+        // (v18) ボタンIDを変更
+        const exportImageBtn = document.getElementById('export-image-btn');
 
         // === 1. キャンバスサイズ更新 ===
         function updateCanvasStyle() {
@@ -389,6 +392,7 @@
                 category.items.forEach(item => {
                     const p = document.createElement('p');
                     p.textContent = item.name;
+                    // (v17) pl-16 から pl-8 に変更 (インデントを半分にする)
                     p.className = 'menu-item pl-8'; 
                     p.style.fontSize = `${item.fontSizeP}px`; // (v4) 個別サイズ
                     section.appendChild(p);
@@ -632,61 +636,57 @@
             renderForm();        // 3. フォーム内容更新
         }
         
-        // === 6. PDF出力関数 === 
-        // (v17) 高解像度化対応
-        async function handleExportPDF() {
-            exportPdfBtn.textContent = 'PDFを生成中...';
-            exportPdfBtn.disabled = true;
+        // === 6. (v18) 画像出力関数 (jsPDFを廃止) ===
+        async function handleExportImage() {
+            exportImageBtn.textContent = '画像を生成中...';
+            exportImageBtn.disabled = true;
 
             try {
-                // --- (v17) 高解像度化のためのスケール計算 ---
-                const DPI = 300; // PDFの解像度
+                // --- 高解像度化のためのスケール計算 ---
+                const DPI = 300; 
                 const MM_PER_INCH = 25.4;
-                
-                // 1. PDF上でのキャンバスの幅（px）を計算
                 const canvasWidthMM = menuData.styles.canvasWidth;
                 const pdfCanvasWidthPx = (canvasWidthMM / MM_PER_INCH) * DPI;
-                
-                // 2. 現在の画面上でのキャンバスの幅（px）を取得
                 const screenCanvasWidthPx = canvasEl.offsetWidth;
-                
-                // 3. html2canvasに必要なscaleを計算
-                // (PDFでのピクセル数 / 画面でのピクセル数)
                 const scale = pdfCanvasWidthPx / screenCanvasWidthPx;
-                // --- スケール計算ここまで ---
-
+                
+                // 1. 高解像度スクリーンショットを撮影
                 const captureCanvas = await html2canvas(canvasEl, { 
-                    scale: scale, // (v17) 動的スケールを適用
+                    scale: scale, 
                     allowTaint: true, 
                     useCORS: true 
                 });
-                const imgData = captureCanvas.toDataURL('image/png');
 
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('p', 'mm', 'a4'); // A4 (210 x 297 mm)
-
-                const canvasHeightMM = menuData.styles.canvasHeight;
+                // 2. 2面を結合するための新しいCanvasを作成
+                const combinedCanvas = document.createElement('canvas');
+                const ctx = combinedCanvas.getContext('2d');
                 
-                // (v16) 中央配置の計算
-                let totalWidth = canvasWidthMM * 2;
-                let marginX = (210 - totalWidth) / 2; // 横方向の中央
-                if (marginX < 0) { marginX = 0; }
+                // 3. サイズを2倍に設定
+                combinedCanvas.width = captureCanvas.width * 2;
+                combinedCanvas.height = captureCanvas.height;
                 
-                let marginY = (297 - canvasHeightMM) / 2; // 縦方向の中央
-                if (marginY < 0) { marginY = 0; }
+                // 4. 背景を白で塗りつぶす (透過PNG防止)
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
 
-                // 2面配置
-                doc.addImage(imgData, 'PNG', marginX, marginY, canvasWidthMM, canvasHeightMM);
-                doc.addImage(imgData, 'PNG', marginX + canvasWidthMM, marginY, canvasWidthMM, canvasHeightMM);
+                // 5. 2面を描画
+                ctx.drawImage(captureCanvas, 0, 0); // 1枚目 (左)
+                ctx.drawImage(captureCanvas, captureCanvas.width, 0); // 2枚目 (右)
 
-                doc.save('お品書き.pdf');
+                // 6. PNGデータとしてダウンロード
+                const imgData = combinedCanvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.href = imgData;
+                link.download = 'お品書き_2面.png';
+                link.click();
 
             } catch (error) {
-                console.error("PDF generation failed:", error);
-                alert("PDFの生成に失敗しました。");
+                console.error("Image generation failed:", error);
+                alert("画像の生成に失敗しました。");
             } finally {
-                exportPdfBtn.textContent = 'PDFとして出力 (A4・2面)';
-                exportPdfBtn.disabled = false;
+                // (v18) ボタンの文言を変更
+                exportImageBtn.textContent = '高解像度 PNGで出力 (2面)';
+                exportImageBtn.disabled = false;
             }
         }
 
@@ -896,8 +896,8 @@
                 const originalTarget = e.target;
                 if (originalTarget.tagName !== 'BUTTON') return;
 
-                // PDFボタンは専用リスナーで処理
-                if (originalTarget.id === 'export-pdf-btn') {
+                // PDFボタンは専用リスナーで処理 (v18)
+                if (originalTarget.id === 'export-image-btn') {
                     return;
                 }
                 
@@ -939,8 +939,8 @@
                 }
             });
             
-            // PDF出力ボタン
-            exportPdfBtn.addEventListener('click', handleExportPDF);
+            // (v18) PNG出力ボタン
+            exportImageBtn.addEventListener('click', handleExportImage);
             // ウィンドウリサイズ
             window.addEventListener('resize', updateCanvasStyle);
         }
@@ -952,6 +952,4 @@
     </script>
 </body>
 </html>
-
-
 
