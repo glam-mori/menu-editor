@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お品書きエディタ</title> 
+    <title>お品書きエディタ (v20)</title> 
     
     <!-- (v12) 3種類のフォントを読み込む -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
@@ -14,8 +14,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- (v18) jsPDFライブラリを削除 -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> -->
+    <!-- (v20) jsPDFライブラリを再追加 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
         /* (v12) フォントの定義 */
@@ -23,27 +23,20 @@
         .font-ten { font-family: 'Ten Mincho', serif; }
         .font-yuji { font-family: 'Yuji Syuku', serif; }
 
-        /* (v14) h2 背景画像用のスタイル */
+        /* (v19) h2 背景画像用のスタイル */
         .menu-category h2 {
             position: relative; 
             z-index: 1; 
         }
-        .menu-category h2::before {
-            content: '';
+        /* (v19) ::before を削除 */
+        
+        /* (v19) <img> タグに適用するスタイル */
+        .h2-bg-image {
             position: absolute;
-            z-index: -1; 
-            /* (v14) .png に修正 */
-            background-image: url('22691375.png'); 
-            background-repeat: no-repeat;
-            /* (v16) left center に変更 */
-            background-position: left center; 
-            background-size: contain; 
-            opacity: 0.7; 
-            width: var(--h2-bg-size, 24px); 
-            height: var(--h2-bg-size, 24px);
-            left: 0; 
-            /* (v17) transform を削除 */
-            top: var(--h2-bg-top, 0px); /* JSで動的に計算 */
+            left: 0;
+            z-index: -1;
+            opacity: 0.7;
+            /* (v20) transform と top: 50% を削除 (JSでtopを計算するため) */
         }
 
         /* --- 基本レイアウト --- */
@@ -217,9 +210,9 @@
 
             <!-- PDF出力ボタン -->
             <div class="mt-8 pt-6 border-t border-gray-300">
-                <!-- (v18) ボタンの文言とIDを変更 -->
-                <button id="export-image-btn" class="btn btn-primary w-full text-lg py-3">
-                    高解像度 PNGで出力 (2面)
+                <!-- (v20) ボタンの文言とIDをPDFに戻す -->
+                <button id="export-pdf-btn" class="btn btn-primary w-full text-lg py-3">
+                    PDFとして出力 (A4・2面)
                 </button>
             </div>
 
@@ -319,8 +312,8 @@
         const addCategoryBtn = document.getElementById('add-category-btn');
         const deleteSelectedBtn = document.getElementById('delete-selected-btn');
         const formContentWrapper = document.getElementById('form-content-wrapper');
-        // (v18) ボタンIDを変更
-        const exportImageBtn = document.getElementById('export-image-btn');
+        // (v20) ボタンIDを変更
+        const exportPdfBtn = document.getElementById('export-pdf-btn');
 
         // === 1. キャンバスサイズ更新 ===
         function updateCanvasStyle() {
@@ -351,7 +344,7 @@
             canvasEl.style.height = `${heightPx}px`;
         }
 
-        // === 2. プレビュー内容生成 === (v17 PDFズレ修正)
+        // === 2. プレビュー内容生成 === (v20 ズレ対策)
         function renderPreview() {
             previewContent.innerHTML = ''; 
             
@@ -373,26 +366,40 @@
                 
                 const h2 = document.createElement('h2');
                 h2.className = 'font-bold mb-3';
-                h2.textContent = category.name;
+                // (v19) h2.textContent を削除
                 h2.style.color = '#A4252A'; // (v2) 色変更
                 h2.style.fontSize = `${category.fontSizeH2}px`; // (v4) 個別サイズ
                 
                 const h2LineHeight = styles.lineHeightH2; // (v17) 行間の高さを取得
                 h2.style.lineHeight = h2LineHeight + 'px'; // (v10) px単位
                 
-                // (v17) 背景画像サイズとtopの動的計算 (transform -> top)
+                // (v19) 背景画像サイズとpaddingの動的計算
                 const bgSize = category.fontSizeH2 * 1.2; 
-                h2.style.setProperty('--h2-bg-size', `${bgSize}px`); 
-                // (行の高さ - 画像の高さ) / 2 = 中央揃えのためのtop位置
-                h2.style.setProperty('--h2-bg-top', `${(h2LineHeight - bgSize) / 2}px`);
                 h2.style.paddingLeft = `${bgSize + 4}px`; // (v16) 画像の右側に文字が来るよう調整
 
+                // (v20) ズレ対策: JSでtopを計算 (transform廃止)
+                const bgTop = (h2LineHeight - bgSize) / 2;
+
+                // (v19) <img> タグを動的に生成
+                const img = document.createElement('img');
+                img.src = '22691375.png'; // (v14) .png
+                img.className = 'h2-bg-image';
+                img.style.width = `${bgSize}px`;
+                img.style.height = `${bgSize}px`;
+                img.style.top = `${bgTop}px`; // (v20) JSで計算したtopを適用
+                h2.appendChild(img);
+
+                // (v19) <span> タグでテキストをラップ
+                const span = document.createElement('span');
+                span.textContent = category.name;
+                h2.appendChild(span);
+                
                 section.appendChild(h2);
                 
                 category.items.forEach(item => {
                     const p = document.createElement('p');
                     p.textContent = item.name;
-                    // (v17) pl-16 から pl-8 に変更 (インデントを半分にする)
+                    // (v17) pl-16 -> v18 で pl-8 に戻す
                     p.className = 'menu-item pl-8'; 
                     p.style.fontSize = `${item.fontSizeP}px`; // (v4) 個別サイズ
                     section.appendChild(p);
@@ -636,10 +643,10 @@
             renderForm();        // 3. フォーム内容更新
         }
         
-        // === 6. (v18) 画像出力関数 (jsPDFを廃止) ===
-        async function handleExportImage() {
-            exportImageBtn.textContent = '画像を生成中...';
-            exportImageBtn.disabled = true;
+        // === 6. (v20) PDF出力関数 (高解像度 + ズレ対策) ===
+        async function handleExportPDF() {
+            exportPdfBtn.textContent = 'PDFを生成中...';
+            exportPdfBtn.disabled = true;
 
             try {
                 // --- 高解像度化のためのスケール計算 ---
@@ -651,42 +658,47 @@
                 const scale = pdfCanvasWidthPx / screenCanvasWidthPx;
                 
                 // 1. 高解像度スクリーンショットを撮影
-                const captureCanvas = await html2canvas(canvasEl, { 
+                const canvas = await html2canvas(canvasEl, { 
                     scale: scale, 
                     allowTaint: true, 
                     useCORS: true 
                 });
-
-                // 2. 2面を結合するための新しいCanvasを作成
-                const combinedCanvas = document.createElement('canvas');
-                const ctx = combinedCanvas.getContext('2d');
                 
-                // 3. サイズを2倍に設定
-                combinedCanvas.width = captureCanvas.width * 2;
-                combinedCanvas.height = captureCanvas.height;
+                const imgData = canvas.toDataURL('image/png');
+
+                // 2. jsPDF (A4縦: 210 x 297 mm)
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
                 
-                // 4. 背景を白で塗りつぶす (透過PNG防止)
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
+                const a4Width = 210;
+                const a4Height = 297;
+                
+                const canvasHeightMM = menuData.styles.canvasHeight;
+                
+                // (v16) 中央配置のためのマージン計算
+                const marginX = (a4Width / 2 - canvasWidthMM) / 2; // 左マージン (2面配置のため、A4の1/4で計算)
+                const marginY = (a4Height - canvasHeightMM) / 2; // 上下マージン
 
-                // 5. 2面を描画
-                ctx.drawImage(captureCanvas, 0, 0); // 1枚目 (左)
-                ctx.drawImage(captureCanvas, captureCanvas.width, 0); // 2枚目 (右)
-
-                // 6. PNGデータとしてダウンロード
-                const imgData = combinedCanvas.toDataURL('image/png');
-                const link = document.createElement('a');
-                link.href = imgData;
-                link.download = 'お品書き_2面.png';
-                link.click();
+                // 3. 2面を貼り付け
+                // 1枚目 (左)
+                pdf.addImage(imgData, 'PNG', marginX, marginY, canvasWidthMM, canvasHeightMM);
+                // 2枚目 (右)
+                pdf.addImage(imgData, 'PNG', a4Width / 2 + marginX, marginY, canvasWidthMM, canvasHeightMM);
+                
+                // 4. ダウンロード
+                pdf.save('お品書き.pdf');
 
             } catch (error) {
-                console.error("Image generation failed:", error);
-                alert("画像の生成に失敗しました。");
+                console.error("PDF generation failed:", error);
+                alert("PDFの生成に失敗しました。");
             } finally {
-                // (v18) ボタンの文言を変更
-                exportImageBtn.textContent = '高解像度 PNGで出力 (2面)';
-                exportImageBtn.disabled = false;
+                // (v20) ボタンの文言を戻す
+                exportPdfBtn.textContent = 'PDFとして出力 (A4・2面)';
+                exportPdfBtn.disabled = false;
             }
         }
 
@@ -896,8 +908,8 @@
                 const originalTarget = e.target;
                 if (originalTarget.tagName !== 'BUTTON') return;
 
-                // PDFボタンは専用リスナーで処理 (v18)
-                if (originalTarget.id === 'export-image-btn') {
+                // PDFボタンは専用リスナーで処理 (v20)
+                if (originalTarget.id === 'export-pdf-btn') {
                     return;
                 }
                 
@@ -939,8 +951,8 @@
                 }
             });
             
-            // (v18) PNG出力ボタン
-            exportImageBtn.addEventListener('click', handleExportImage);
+            // (v20) PDF出力ボタン
+            exportPdfBtn.addEventListener('click', handleExportPDF);
             // ウィンドウリサイズ
             window.addEventListener('resize', updateCanvasStyle);
         }
