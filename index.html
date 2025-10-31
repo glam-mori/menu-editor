@@ -3,43 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お品書きエディタ (v20)</title> 
+    <title>お品書きエディタ</title> 
     
-    <!-- (v12) 3種類のフォントを読み込む -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Ten+Mincho&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap" rel="stylesheet">
     
-    <!-- (v12) ライブラリ読み込み -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <!-- (v22) html2canvas.min.js を再追加 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- (v20) jsPDFライブラリを再追加 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- (v22) v21で追加した cjk プラグインは削除 (v20の構成に戻す) -->
+
 
     <style>
-        /* (v12) フォントの定義 */
         .font-noto { font-family: 'Noto Serif JP', serif; }
         .font-ten { font-family: 'Ten Mincho', serif; }
         .font-yuji { font-family: 'Yuji Syuku', serif; }
 
-        /* (v19) h2 背景画像用のスタイル */
         .menu-category h2 {
             position: relative; 
             z-index: 1; 
         }
-        /* (v19) ::before を削除 */
         
-        /* (v19) <img> タグに適用するスタイル */
         .h2-bg-image {
             position: absolute;
             left: 0;
             z-index: -1;
             opacity: 0.7;
-            /* (v20) transform と top: 50% を削除 (JSでtopを計算するため) */
         }
 
-        /* --- 基本レイアウト --- */
+        /* --- 基本レイアウト (v20に戻す) --- */
         body {
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
             display: flex; flex-direction: column; height: 100vh;
@@ -53,17 +48,23 @@
         }
         #canvas {
             background-color: #ffffff;
-            /* (v10) box-shadow -> border */
             border: 1px solid #ddd; 
             flex-shrink: 0; 
             overflow: hidden;
         }
+        /* (v22) canvas-content の padding を v20 の Tailwind に戻す */
+        #canvas-content {
+            height: 100%;
+            width: 100%;
+            /* (v21のmm指定を削除) */
+        }
+        
         #form-wrapper {
             height: 50vh; overflow: auto; background-color: #f9f9f9;
             border-top: 2px solid #ddd;
         }
 
-        /* --- フォームUIスタイル --- */
+        /* --- フォームUIスタイル (変更なし) --- */
         .form-input {
             width: 100%; border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px;
         }
@@ -127,7 +128,6 @@
         }
         .sortable-ghost { opacity: 0.4; background: #cce7ff; }
         
-        /* (v15) キャンバスボタン用 */
         .mm-label { font-size: 0.875rem; color: #6b7280; flex-shrink: 0; }
         .canvas-size-display {
             font-size: 0.875rem; font-weight: 600; color: #1f2937;
@@ -148,7 +148,6 @@
             width: 3.5rem; /* 56px */
             text-align: right; margin-right: 4px; flex-shrink: 0;
         }
-        /* (v15) 一括フォントサイズ表示用 */
         .line-height-display.w-20 {
             width: 5rem; /* 80px */
             display: inline-block; 
@@ -160,13 +159,14 @@
     <!-- 1. プレビューエリア -->
     <div id="preview-wrapper">
         <div id="canvas">
+             <!-- (v22) v20 のラッパーに戻す -->
             <div id="canvas-content" class="h-full w-full py-10 px-8 text-gray-800">
                 <!-- JSで生成 -->
             </div>
         </div>
     </div>
 
-    <!-- 2. 入力フォームエリア -->
+    <!-- 2. 入力フォームエリア (v21と変更なし) -->
     <div id="form-wrapper">
         <div class="p-4" id="form-content-wrapper">
             <!-- 大見出しフォーム -->
@@ -185,7 +185,7 @@
                 </div>
             </div>
 
-            <!-- 全体設定フォーム (v15) JSで動的に中身を生成 -->
+            <!-- 全体設定フォーム -->
             <div class="mb-4 p-4 border border-gray-300 rounded-lg bg-white">
                 <h3 class="form-label mb-2">全体設定</h3>
                 <div class="flex flex-wrap gap-x-6 gap-y-4">
@@ -210,7 +210,6 @@
 
             <!-- PDF出力ボタン -->
             <div class="mt-8 pt-6 border-t border-gray-300">
-                <!-- (v20) ボタンの文言とIDをPDFに戻す -->
                 <button id="export-pdf-btn" class="btn btn-primary w-full text-lg py-3">
                     PDFとして出力 (A4・2面)
                 </button>
@@ -221,19 +220,15 @@
 
     <!-- 3. JavaScript -->
     <script>
-        // --- アプリの核となるデータ ---
+        // --- アプリの核となるデータ (v21と変更なし) ---
         let menuData = {
-            // (v12) デフォルトテキスト・サイズ変更
             title: "〇〇様特別メニュー", 
             titleFontSize: 18,  
             styles: {
-                // (v12) デフォルト行間変更
                 lineHeightH2: 10,  
                 lineHeightP: 20,   
-                // (v10) デフォルトサイズ変更
                 canvasWidth: 91,   
                 canvasHeight: 257,
-                // (v11) デフォルトフォント変更
                 fontFamily: "'Noto Serif JP', serif" 
             },
             categories: [
@@ -252,12 +247,10 @@
                     isChecked: false,
                     fontSizeH2: 20,
                     items: [
-                        // (v17) ■ を追加
                         { id: crypto.randomUUID(), name: "■肉", isChecked: false, fontSizeP: 16 },
                         { id: crypto.randomUUID(), name: "宮崎牛サーロイン", isChecked: false, fontSizeP: 16 },
                         { id: crypto.randomUUID(), name: "黒毛和牛タン", isChecked: false, fontSizeP: 16 },
                         { id: crypto.randomUUID(), name: "宮崎牛ランプ", isChecked: false, fontSizeP: 16 },
-                        // (v17) ■ を追加
                         { id: crypto.randomUUID(), name: "■野菜", isChecked: false, fontSizeP: 16 },
                         { id: crypto.randomUUID(), name: "白菜", isChecked: false, fontSizeP: 16 },
                         { id: crypto.randomUUID(), name: "ブラウンえのき", isChecked: false, fontSizeP: 16 },
@@ -270,12 +263,10 @@
                     isChecked: false,
                     fontSizeH2: 20,
                     items: [
-                        // (v17) ■ を追加
                         { id: crypto.randomUUID(), name: "■肉", isChecked: false, fontSizeP: 16 },
                         { id: crypto.randomUUID(), name: "熊本和王ミスジ", isChecked: false, fontSizeP: 16 },
                         { id: crypto.randomUUID(), name: "松阪牛サーロイン", isChecked: false, fontSizeP: 16 },
                         { id: crypto.randomUUID(), name: "神戸牛肩ロース", isChecked: false, fontSizeP: 16 },
-                        // (v17) ■ を追加
                         { id: crypto.randomUUID(), name: "■野菜", isChecked: false, fontSizeP: 16 },
                         { id: crypto.randomUUID(), name: "椎茸", isChecked: false, fontSizeP: 16 },
                         { id: crypto.randomUUID(), name: "長ネギ", isChecked: false, fontSizeP: 16 },
@@ -302,8 +293,10 @@
                 }
             ]
         };
+        
+        // (v22) v21で追加した定数を削除
 
-        // --- HTML要素を取得 (v15 変更点) ---
+        // --- HTML要素を取得 (v21と変更なし) ---
         const previewWrapper = document.getElementById('preview-wrapper');
         const canvasEl = document.getElementById('canvas');
         const previewContent = document.getElementById('canvas-content');
@@ -312,14 +305,12 @@
         const addCategoryBtn = document.getElementById('add-category-btn');
         const deleteSelectedBtn = document.getElementById('delete-selected-btn');
         const formContentWrapper = document.getElementById('form-content-wrapper');
-        // (v20) ボタンIDを変更
         const exportPdfBtn = document.getElementById('export-pdf-btn');
 
-        // === 1. キャンバスサイズ更新 ===
+        // === 1. キャンバスサイズ更新 (v20のロジックに戻す) ===
         function updateCanvasStyle() {
             const styles = menuData.styles;
             
-            // (v11) フォント切り替え
             const formFontFamily = document.getElementById('form-font-family');
             if (formFontFamily) {
                  canvasEl.style.fontFamily = formFontFamily.value; 
@@ -327,12 +318,11 @@
                  canvasEl.style.fontFamily = menuData.styles.fontFamily;
             }
             
-            // (v11) プレビューサイズ計算ロジック
-            const baseScale = 600 / 210; // 基準幅(600px) / A4幅(210mm)
+            // (v22) v20のロジック (pxベースのスケール計算) に戻す
+            const baseScale = 600 / 210; 
             let widthPx = styles.canvasWidth * baseScale;
             let heightPx = styles.canvasHeight * baseScale;
             
-            // 画面幅に収まるように調整
             const availableWidth = previewWrapper.clientWidth * 0.9;
             if (widthPx > availableWidth) {
                 const fitScale = availableWidth / styles.canvasWidth;
@@ -342,14 +332,19 @@
             
             canvasEl.style.width = `${widthPx}px`;
             canvasEl.style.height = `${heightPx}px`;
+            
+            // (v22) v21の transform: scale() を削除
+            canvasEl.style.transform = ``;
+            canvasEl.style.transformOrigin = '';
         }
 
-        // === 2. プレビュー内容生成 === (v20 ズレ対策)
+        // === 2. プレビュー内容生成 (v20-fixのロジックに戻す) ===
         function renderPreview() {
             previewContent.innerHTML = ''; 
             
             // 大見出し
             const h1 = document.createElement('h1');
+            // (v22) v20のTailwindクラスに戻す
             h1.className = 'text-3xl font-bold text-center mb-8 tracking-wider';
             h1.textContent = menuData.title;
             h1.style.fontSize = `${menuData.titleFontSize}px`;
@@ -360,36 +355,38 @@
             // 中見出し・品名
             menuData.categories.forEach((category) => {
                 const section = document.createElement('section');
+                // (v22) v20のTailwindクラスに戻す
                 section.className = 'menu-category mb-6'; 
-                // (v10) px単位で適用
                 section.style.lineHeight = styles.lineHeightP + 'px'; 
                 
                 const h2 = document.createElement('h2');
+                // (v22) v20のTailwindクラスに戻す
                 h2.className = 'font-bold mb-3';
-                // (v19) h2.textContent を削除
-                h2.style.color = '#A4252A'; // (v2) 色変更
-                h2.style.fontSize = `${category.fontSizeH2}px`; // (v4) 個別サイズ
+                h2.style.position = 'relative'; // v20から維持
+                h2.style.zIndex = '1';          // v20から維持
                 
-                const h2LineHeight = styles.lineHeightH2; // (v17) 行間の高さを取得
-                h2.style.lineHeight = h2LineHeight + 'px'; // (v10) px単位
+                h2.style.color = '#A4252A'; 
+                h2.style.fontSize = `${category.fontSizeH2}px`; 
                 
-                // (v19) 背景画像サイズとpaddingの動的計算
+                const h2LineHeight = styles.lineHeightH2; 
+                h2.style.lineHeight = h2LineHeight + 'px'; 
+                
                 const bgSize = category.fontSizeH2 * 1.2; 
-                h2.style.paddingLeft = `${bgSize + 4}px`; // (v16) 画像の右側に文字が来るよう調整
+                // (v22) v20のpx指定に戻す
+                h2.style.paddingLeft = `${bgSize + 4}px`; 
+                
+                // (v20-fix) ズレ対策: JSでtopを計算 (フォント半分下にずらす)
+                let bgTop = (h2LineHeight - bgSize) / 2;
+                bgTop += (category.fontSizeH2 / 2);
 
-                // (v20) ズレ対策: JSでtopを計算 (transform廃止)
-                const bgTop = (h2LineHeight - bgSize) / 2;
-
-                // (v19) <img> タグを動的に生成
                 const img = document.createElement('img');
-                img.src = '22691375.png'; // (v14) .png
-                img.className = 'h2-bg-image';
+                img.src = '22691375.png'; 
+                img.className = 'h2-bg-image'; 
                 img.style.width = `${bgSize}px`;
                 img.style.height = `${bgSize}px`;
-                img.style.top = `${bgTop}px`; // (v20) JSで計算したtopを適用
+                img.style.top = `${bgTop}px`; 
                 h2.appendChild(img);
 
-                // (v19) <span> タグでテキストをラップ
                 const span = document.createElement('span');
                 span.textContent = category.name;
                 h2.appendChild(span);
@@ -399,9 +396,9 @@
                 category.items.forEach(item => {
                     const p = document.createElement('p');
                     p.textContent = item.name;
-                    // (v17) pl-16 -> v18 で pl-8 に戻す
-                    p.className = 'menu-item pl-8'; 
-                    p.style.fontSize = `${item.fontSizeP}px`; // (v4) 個別サイズ
+                    // (v22) v20のTailwindクラス (pl-8) に戻す
+                    p.className = 'menu-item pl-8';
+                    p.style.fontSize = `${item.fontSizeP}px`; 
                     section.appendChild(p);
                 });
                 
@@ -409,21 +406,18 @@
             });
         }
 
-        // === 3. フォームを生成する関数 ===
-        // (v15) 全面更新 (キャンバスボタン、一括フォントサイズ表示)
+        // === 3. フォームを生成する関数 (v21とほぼ同じ) ===
         function renderForm() {
             
-            // アイコン
             const svgMinus = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 12H6" /></svg>`;
             const svgPlus = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" /></svg>`;
             const svgTrash = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>`;
 
-            // --- 全体設定 ---
             const globalSettingsDiv = document.querySelector('#form-wrapper .flex.flex-wrap.gap-x-6.gap-y-4');
             if (globalSettingsDiv) {
                 globalSettingsDiv.innerHTML = `
-                    <!-- フォント選択 -->
                     <div class="flex-shrink-0" style="width: 200px;">
+                        <!-- (v22) v21 の「プレビュー用」注釈を削除 -->
                         <label class="form-label">フォント</label>
                         <div class="flex items-center gap-2 mt-1">
                             <select id="form-font-family" class="form-select">
@@ -433,7 +427,6 @@
                             </select>
                         </div>
                     </div>
-                    <!-- (v15) キャンバス幅 -->
                     <div id="global-style-canvas-w" class="flex-shrink-0">
                         <label class="form-label">キャンバス幅</label>
                         <div class="flex items-center gap-2 mt-1">
@@ -442,7 +435,6 @@
                             <button class="btn btn-control" data-style-op="canvas-w-inc">${svgPlus}</button>
                         </div>
                     </div>
-                    <!-- (v15) キャンバス高 -->
                     <div id="global-style-canvas-h" class="flex-shrink-0">
                         <label class="form-label">キャンバス高</label>
                         <div class="flex items-center gap-2 mt-1">
@@ -451,7 +443,6 @@
                             <button class="btn btn-control" data-style-op="canvas-h-inc">${svgPlus}</button>
                         </div>
                     </div>
-                    <!-- H2 行間 -->
                     <div id="global-style-h2-line" class="flex-shrink-0">
                         <label class="form-label">中見出し 行間</label>
                         <div class="flex items-center gap-2 mt-1">
@@ -460,7 +451,6 @@
                             <button class="btn btn-control" data-style-op="h2-line-inc">${svgPlus}</button>
                         </div>
                     </div>
-                    <!-- P 行間 -->
                     <div id="global-style-p-line" class="flex-shrink-0">
                         <label class="form-label">品名 行間</label>
                         <div class="flex items-center gap-2 mt-1">
@@ -469,7 +459,6 @@
                             <button class="btn btn-control" data-style-op="p-line-inc">${svgPlus}</button>
                         </div>
                     </div>
-                    <!-- (v15) H2 フォント一括 -->
                     <div id="global-style-h2-font" class="flex-shrink-0">
                         <label class="form-label">中見出しフォント (一括)</label>
                         <div class="flex items-center gap-2 mt-1">
@@ -478,7 +467,6 @@
                             <button class="btn btn-control" data-style-op="all-h2-font-inc">${svgPlus}</button>
                         </div>
                     </div>
-                    <!-- (v15) P フォント一括 -->
                     <div id="global-style-p-font" class="flex-shrink-0">
                         <label class="form-label">品名フォント (一括)</label>
                         <div class="flex items-center gap-2 mt-1">
@@ -490,29 +478,24 @@
                 `;
             }
             
-            // --- 大見出しの値を設定 ---
             formTitle.value = menuData.title;
             const titleFontSizeDisplay = document.querySelector('#title-form-group .font-size-display');
             if (titleFontSizeDisplay) titleFontSizeDisplay.textContent = `${menuData.titleFontSize}px`;
 
-            // --- 全体設定の値を設定 ---
             const formFontFamily = document.getElementById('form-font-family'); 
             if (formFontFamily) formFontFamily.value = menuData.styles.fontFamily; 
             
-            // (v15) キャンバスサイズ表示
             const canvasWDisplay = document.querySelector('#global-style-canvas-w .canvas-size-display');
             if (canvasWDisplay) canvasWDisplay.textContent = menuData.styles.canvasWidth.toFixed(0) + ' mm';
             const canvasHDisplay = document.querySelector('#global-style-canvas-h .canvas-size-display');
             if (canvasHDisplay) canvasHDisplay.textContent = menuData.styles.canvasHeight.toFixed(0) + ' mm';
             
-            // (v10) 行間表示
             const h2LineDisplay = document.querySelector('#global-style-h2-line .line-height-display');
             if (h2LineDisplay) h2LineDisplay.textContent = menuData.styles.lineHeightH2.toFixed(0) + 'px';
             
             const pLineDisplay = document.querySelector('#global-style-p-line .line-height-display');
             if (pLineDisplay) pLineDisplay.textContent = menuData.styles.lineHeightP.toFixed(0) + 'px';
             
-            // (v15) 一括フォントサイズ平均を計算・表示
             let totalH2 = 0;
             let countH2 = menuData.categories.length;
             const h2FontDisplay = document.querySelector('#global-style-h2-font .line-height-display');
@@ -540,7 +523,6 @@
                 if (pFontDisplay) pFontDisplay.textContent = 'N/A';
             }
 
-            // --- 中見出し・品名リストを生成 ---
             categoriesFormList.innerHTML = '';
 
             menuData.categories.forEach((category) => {
@@ -548,7 +530,6 @@
                 categoryDiv.className = 'border border-gray-300 rounded-lg p-4 mb-4 bg-white';
                 categoryDiv.dataset.id = category.id; 
 
-                // 中見出し行
                 categoryDiv.innerHTML = `
                     <div class="form-row">
                         <span class="drag-handle cat-handle">:::</span>
@@ -558,12 +539,10 @@
                         <span class="font-size-display">${category.fontSizeH2}px</span>
                         <button class="btn btn-control" data-style-op="h2-font-dec" data-cat-id="${category.id}">${svgMinus}</button>
                         <button class="btn btn-control" data-style-op="h2-font-inc" data-cat-id="${category.id}">${svgPlus}</button>
-                        <!-- (v14) 個別削除ボタン -->
                         <button class="btn btn-control btn-control-danger" data-delete-cat-id="${category.id}">${svgTrash}</button>
                     </div>
                 `;
 
-                // 品名リスト
                 const itemsListDiv = document.createElement('div');
                 itemsListDiv.className = 'mt-4 pt-4 border-t border-gray-200 items-list';
                 itemsListDiv.dataset.catId = category.id;
@@ -580,14 +559,12 @@
                         <span class="font-size-display">${item.fontSizeP}px</span>
                         <button class="btn btn-control" data-style-op="p-font-dec" data-item-id="${item.id}">${svgMinus}</button>
                         <button class="btn btn-control" data-style-op="p-font-inc" data-item-id="${item.id}">${svgPlus}</button>
-                        <!-- (v14) 個別削除ボタン -->
                         <button class="btn btn-control btn-control-danger" data-delete-item-id="${item.id}">${svgTrash}</button>
                     `;
                     itemsListDiv.appendChild(itemDiv);
                 });
                 categoryDiv.appendChild(itemsListDiv);
 
-                // 品名追加ボタン
                 const addItemBtn = document.createElement('button');
                 addItemBtn.className = 'btn btn-secondary w-full mt-4';
                 addItemBtn.textContent = '＋ 品名を追加';
@@ -597,53 +574,44 @@
                 categoriesFormList.appendChild(categoryDiv);
             });
 
-            // 並び替え機能を初期化
             initSortable();
         }
         
-        // === 4. SortableJS ===
+        // === 4. SortableJS (v20と同じ) ===
         function initSortable() {
-            // カテゴリの並び替え
             new Sortable(categoriesFormList, {
-                handle: '.cat-handle', // ドラッグハンドル
-                animation: 150,
-                ghostClass: 'sortable-ghost',
+                handle: '.cat-handle', animation: 150, ghostClass: 'sortable-ghost',
                 onEnd: (evt) => {
-                    // 実際のデータ(menuData)を並び替える
                     const item = menuData.categories.splice(evt.oldIndex, 1)[0];
                     menuData.categories.splice(evt.newIndex, 0, item);
-                    renderAll(); // 再描画
+                    renderAll(); 
                 }
             });
             
-            // 品名の並び替え
             document.querySelectorAll('.items-list').forEach(list => {
                 new Sortable(list, {
-                    handle: '.item-handle', // ドラッグハンドル
-                    animation: 150,
-                    ghostClass: 'sortable-ghost',
+                    handle: '.item-handle', animation: 150, ghostClass: 'sortable-ghost',
                     onEnd: (evt) => {
                         const catId = evt.from.dataset.catId;
                         const category = menuData.categories.find(c => c.id === catId);
                         if (category) {
-                            // 実際のデータ(menuData.items)を並び替える
                             const item = category.items.splice(evt.oldIndex, 1)[0];
                             category.items.splice(evt.newIndex, 0, item);
-                            renderAll(); // 再描画
+                            renderAll();
                         }
                     }
                 });
             });
         }
 
-        // === 5. 再描画 ===
+        // === 5. 再描画 (v20と同じ) ===
         function renderAll() {
-            updateCanvasStyle(); // 1. キャンバスサイズ・フォント適用
-            renderPreview();     // 2. プレビュー内容更新
-            renderForm();        // 3. フォーム内容更新
+            updateCanvasStyle(); 
+            renderPreview();     
+            renderForm();        
         }
         
-        // === 6. (v20) PDF出力関数 (高解像度 + ズレ対策) ===
+        // === 6. (v22) PDF出力関数 (v20の高解像度キャプチャロジックに戻す) ===
         async function handleExportPDF() {
             exportPdfBtn.textContent = 'PDFを生成中...';
             exportPdfBtn.disabled = true;
@@ -680,7 +648,7 @@
                 const canvasHeightMM = menuData.styles.canvasHeight;
                 
                 // (v16) 中央配置のためのマージン計算
-                const marginX = (a4Width / 2 - canvasWidthMM) / 2; // 左マージン (2面配置のため、A4の1/4で計算)
+                const marginX = (a4Width / 2 - canvasWidthMM) / 2; // 左マージン
                 const marginY = (a4Height - canvasHeightMM) / 2; // 上下マージン
 
                 // 3. 2面を貼り付け
@@ -696,33 +664,29 @@
                 console.error("PDF generation failed:", error);
                 alert("PDFの生成に失敗しました。");
             } finally {
-                // (v20) ボタンの文言を戻す
                 exportPdfBtn.textContent = 'PDFとして出力 (A4・2面)';
                 exportPdfBtn.disabled = false;
             }
         }
 
-        // === 7. イベントリスナー ===
-        // (v15) 全面更新 (キャンバスボタン対応)
+
+        // === 7. イベントリスナー (v20のロジックに戻す) ===
         function setupListeners() {
             
-            // --- フォームの入力イベント (テキスト入力、チェック、選択) ---
             formContentWrapper.addEventListener('input', (e) => {
                 const target = e.target;
                 
-                // (v11) フォント切り替え
                 if (target.id === 'form-font-family') {
                     menuData.styles.fontFamily = target.value;
-                    updateCanvasStyle(); // キャンバスのフォントを即時変更
+                    updateCanvasStyle(); // (v22) v20のロジックに戻す
+                    renderPreview();     // (v22) プレビューも更新
                     return;
                 }
                 
-                // 大見出しテキスト
                 if (target.id === 'form-title') { 
                     menuData.title = target.value; 
                 }
                 
-                // 中見出しテキスト
                 const catId = target.dataset.catId;
                 const itemId = target.dataset.itemId;
                 if (catId && !itemId && target.type === 'text') {
@@ -730,7 +694,6 @@
                     if (category) category.name = target.value;
                 }
                 
-                // 品名テキスト
                 if (itemId && target.type === 'text') {
                     for (const category of menuData.categories) {
                         const item = category.items.find(i => i.id === itemId);
@@ -738,13 +701,11 @@
                     }
                 }
                 
-                // 中見出しチェック
                 if (catId && target.type === 'checkbox') {
                     const category = menuData.categories.find(c => c.id === catId);
                     if (category) category.isChecked = target.checked;
                 }
                 
-                // 品名チェック
                 if (itemId && target.type === 'checkbox') {
                     for (const category of menuData.categories) {
                         const item = category.items.find(i => i.id === itemId);
@@ -752,14 +713,11 @@
                     }
                 }
 
-                // テキストが変更されたらプレビューを更新
                 if (target.type === 'text') { renderPreview(); }
             });
             
-            // --- フォームのクリックイベント (ボタン操作) ---
             formContentWrapper.addEventListener('click', (e) => {
                 
-                // (v14) 個別削除ボタンの処理
                 const btnDelete = e.target.closest('.btn-control-danger');
                 if (btnDelete) {
                     const deleteCatId = btnDelete.dataset.deleteCatId;
@@ -768,7 +726,7 @@
                     if (deleteCatId) {
                         menuData.categories = menuData.categories.filter(c => c.id !== deleteCatId);
                         renderAll();
-                        return; // 他の処理を行わない
+                        return; 
                     }
 
                     if (deleteItemId) {
@@ -776,14 +734,13 @@
                             category.items = category.items.filter(i => i.id !== deleteItemId);
                         });
                         renderAll();
-                        return; // 他の処理を行わない
+                        return; 
                     }
                 }
                 
-                // +/- ボタン (スタイル操作)
                 const btnControl = e.target.closest('.btn-control');
                 if (btnControl) {
-                    const target = btnControl; // 押されたボタン
+                    const target = btnControl; 
                     const catId = target.dataset.catId;
                     const itemId = target.dataset.itemId;
                     const styleOp = target.dataset.styleOp;
@@ -795,7 +752,6 @@
                         let renderAllNeeded = false; 
                         let canvasSizeChanged = false; 
 
-                        // (v15) キャンバスサイズ変更
                         if (styleOp === 'canvas-w-inc') {
                             styles.canvasWidth = Math.min(105, styles.canvasWidth + 1); canvasSizeChanged = true;
                         }
@@ -810,22 +766,19 @@
                         }
 
                         if (canvasSizeChanged) {
-                            updateCanvasStyle(); // キャンバスサイズをプレビューに適用
-                            // フォームの表示を更新
+                            updateCanvasStyle(); 
                             const canvasWDisplay = document.querySelector('#global-style-canvas-w .canvas-size-display');
                             if (canvasWDisplay) canvasWDisplay.textContent = styles.canvasWidth.toFixed(0) + ' mm';
                             const canvasHDisplay = document.querySelector('#global-style-canvas-h .canvas-size-display');
                             if (canvasHDisplay) canvasHDisplay.textContent = styles.canvasHeight.toFixed(0) + ' mm';
                         }
 
-                        // 行間変更
                         if (styleOp === 'h2-line-inc') { styles.lineHeightH2 += 1; lineHeightChanged = true; }
                         if (styleOp === 'h2-line-dec') { styles.lineHeightH2 = Math.max(8, styles.lineHeightH2 - 1); lineHeightChanged = true; }
                         if (styleOp === 'p-line-inc') { styles.lineHeightP += 1; lineHeightChanged = true; }
                         if (styleOp === 'p-line-dec') { styles.lineHeightP = Math.max(8, styles.lineHeightP - 1); lineHeightChanged = true; }
 
                         if (lineHeightChanged) {
-                            // フォームの表示を更新
                             const h2LineDisplay = document.querySelector('#global-style-h2-line .line-height-display');
                             if (h2LineDisplay) h2LineDisplay.textContent = styles.lineHeightH2.toFixed(0) + 'px';
                             
@@ -833,7 +786,6 @@
                             if (pLineDisplay) pLineDisplay.textContent = styles.lineHeightP.toFixed(0) + 'px';
                         }
                         
-                        // (v8) 大見出しフォント
                         if (styleOp === 'h1-font-inc') {
                             menuData.titleFontSize += 1; fontSizeChanged = true;
                             const displayEl = target.closest('.form-row').querySelector('.font-size-display');
@@ -845,7 +797,6 @@
                             if (displayEl) displayEl.textContent = `${menuData.titleFontSize}px`;
                         }
 
-                        // (v4) 中見出しフォント (個別)
                         if (catId && !itemId) {
                             const category = menuData.categories.find(c => c.id === catId);
                             if (category) {
@@ -859,7 +810,6 @@
                             }
                         }
 
-                        // (v4) 品名フォント (個別)
                         if (itemId) {
                             for (const category of menuData.categories) {
                                 const item = category.items.find(i => i.id === itemId);
@@ -876,7 +826,6 @@
                             }
                         }
                         
-                        // (v8) フォント (一括)
                         if (styleOp === 'all-h2-font-inc') {
                             menuData.categories.forEach(cat => cat.fontSizeH2 += 1);
                             renderAllNeeded = true;
@@ -894,28 +843,26 @@
                             renderAllNeeded = true;
                         }
 
-                        // 描画処理
                         if (renderAllNeeded) {
-                            renderAll(); // 一括変更はフォーム全体の再描画
+                            renderAll(); 
                         } else if (fontSizeChanged || lineHeightChanged) {
-                            renderPreview(); // 個別変更はプレビューのみ更新
+                            // (v22) v20 のロジックに戻す
+                            renderPreview(); 
                         }
+                        // (v22) canvasSizeChanged は updateCanvasStyle() が処理
                     }
-                    return; // +/- ボタンの処理はここで終了
+                    return; 
                 }
                 
-                // --- その他のボタン (追加・削除) ---
                 const originalTarget = e.target;
                 if (originalTarget.tagName !== 'BUTTON') return;
 
-                // PDFボタンは専用リスナーで処理 (v20)
                 if (originalTarget.id === 'export-pdf-btn') {
                     return;
                 }
                 
                 const catId = originalTarget.dataset.catId;
 
-                // ＋ 品名を追加
                 if (catId && originalTarget.classList.contains('btn-secondary')) {
                     const category = menuData.categories.find(c => c.id === catId);
                     if (category) {
@@ -923,37 +870,32 @@
                             id: crypto.randomUUID(), 
                             name: "新しい品名", 
                             isChecked: false,
-                            fontSizeP: 16 // デフォルト
+                            fontSizeP: 16 
                         });
-                        renderAll(); // フォームを再描画
+                        renderAll(); 
                     }
                 }
-                // ＋ 中見出しを追加
                 else if (originalTarget.id === 'add-category-btn') {
                      menuData.categories.push({ 
                         id: crypto.randomUUID(),
                         name: "新しい中見出し", 
                         isChecked: false, 
-                        fontSizeH2: 20, // デフォルト
+                        fontSizeH2: 20, 
                         items: [] 
                     });
-                    renderAll(); // フォームを再描画
+                    renderAll(); 
                 }
-                // 選択した項目を削除
                 else if (originalTarget.id === 'delete-selected-btn') {
-                    // 品名を削除
                     menuData.categories.forEach(category => {
                         category.items = category.items.filter(item => !item.isChecked);
                     });
-                    // 中見出しを削除
                     menuData.categories = menuData.categories.filter(category => !category.isChecked);
-                    renderAll(); // フォームを再描画
+                    renderAll(); 
                 }
             });
             
-            // (v20) PDF出力ボタン
             exportPdfBtn.addEventListener('click', handleExportPDF);
-            // ウィンドウリサイズ
+             // (v22) v20 のロジックに戻す
             window.addEventListener('resize', updateCanvasStyle);
         }
 
@@ -964,4 +906,3 @@
     </script>
 </body>
 </html>
-
