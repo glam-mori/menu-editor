@@ -12,7 +12,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
@@ -209,7 +209,7 @@
                 </button>
             </div>
             <div class="text-center text-xs text-gray-500 mt-2">
-                ※フォントの読み込み完了まで数秒かかる場合があります
+                ※フォント読み込みのため、押下後に数秒待機する場合があります
             </div>
 
         </div> 
@@ -599,37 +599,41 @@
             renderForm();        
         }
         
-        // === 6. PDF出力 (GitHub Pages対策済) ===
+        // === 6. PDF出力 (dom-to-image版) ===
         async function handleExportPDF() {
             exportPdfBtn.textContent = 'フォント確認中...';
             exportPdfBtn.disabled = true;
 
             try {
-                // 【重要】Webフォントの読み込み完了を待機 (GitHub Pages対策)
+                // フォント読み込み待機
                 await document.fonts.ready;
+                exportPdfBtn.textContent = '画像生成中...';
+                
+                // キャンバス要素
+                const element = document.getElementById('canvas');
+                
+                // 高解像度化（スケールアップ）
+                // プレビュー表示サイズではなく、印刷用の高解像度でキャプチャするためにスケールを指定
+                const scale = 2; // 解像度倍率 (2倍で十分綺麗になります)
+                
+                const options = {
+                    // スタイルを強制して拡大
+                    height: element.offsetHeight * scale,
+                    width: element.offsetWidth * scale,
+                    style: {
+                        transform: 'scale(' + scale + ')',
+                        transformOrigin: 'top left',
+                        width: element.offsetWidth + 'px',
+                        height: element.offsetHeight + 'px'
+                    }
+                };
 
+                // dom-to-image で PNG データURL を生成
+                const dataUrl = await domtoimage.toPng(element, options);
+                
                 exportPdfBtn.textContent = 'PDF生成中...';
 
-                // 高解像度化のためのスケール計算
-                const DPI = 300; 
-                const MM_PER_INCH = 25.4;
-                const canvasWidthMM = menuData.styles.canvasWidth;
-                const pdfCanvasWidthPx = (canvasWidthMM / MM_PER_INCH) * DPI;
-                const screenCanvasWidthPx = canvasEl.offsetWidth;
-                const scale = pdfCanvasWidthPx / screenCanvasWidthPx;
-                
-                // html2canvasの設定
-                const canvas = await html2canvas(canvasEl, { 
-                    scale: scale, 
-                    allowTaint: true, 
-                    useCORS: true, // クロスオリジン対策
-                    logging: false, // ログ無効化
-                    removeContainer: true,
-                });
-                
-                const imgData = canvas.toDataURL('image/png');
-
-                // jsPDF生成 (A4縦)
+                // jsPDF生成
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
                     orientation: 'portrait',
@@ -639,24 +643,22 @@
                 
                 const a4Width = 210;
                 const a4Height = 297;
+                const canvasWidthMM = menuData.styles.canvasWidth;
                 const canvasHeightMM = menuData.styles.canvasHeight;
                 
                 // 中央配置のマージン計算
-                const marginX = (a4Width / 2 - canvasWidthMM) / 2; // 左マージン
-                const marginY = (a4Height - canvasHeightMM) / 2;   // 上下マージン
+                const marginX = (a4Width / 2 - canvasWidthMM) / 2;
+                const marginY = (a4Height - canvasHeightMM) / 2;
 
-                // 画像貼り付け (A4に2面付け)
-                // 左側
-                pdf.addImage(imgData, 'PNG', marginX, marginY, canvasWidthMM, canvasHeightMM);
-                // 右側
-                pdf.addImage(imgData, 'PNG', a4Width / 2 + marginX, marginY, canvasWidthMM, canvasHeightMM);
+                // 貼り付け
+                pdf.addImage(dataUrl, 'PNG', marginX, marginY, canvasWidthMM, canvasHeightMM);
+                pdf.addImage(dataUrl, 'PNG', a4Width / 2 + marginX, marginY, canvasWidthMM, canvasHeightMM);
                 
-                // ダウンロード
                 pdf.save('お品書き.pdf');
 
             } catch (error) {
                 console.error("PDF generation failed:", error);
-                alert("PDFの生成に失敗しました。\nフォントや画像の読み込みエラーの可能性があります。");
+                alert("PDFの生成に失敗しました。\n" + error.message);
             } finally {
                 exportPdfBtn.textContent = 'PDFとして出力 (A4・2面)';
                 exportPdfBtn.disabled = false;
@@ -710,7 +712,6 @@
             });
             
             formContentWrapper.addEventListener('click', (e) => {
-                // 削除ボタン
                 const btnDelete = e.target.closest('.btn-control-danger');
                 if (btnDelete) {
                     const deleteCatId = btnDelete.dataset.deleteCatId;
@@ -731,7 +732,6 @@
                     }
                 }
                 
-                // 微調整ボタン
                 const btnControl = e.target.closest('.btn-control');
                 if (btnControl) {
                     const target = btnControl; 
@@ -855,7 +855,6 @@
                 
                 const catId = originalTarget.dataset.catId;
 
-                // 品名追加
                 if (catId && originalTarget.classList.contains('btn-secondary')) {
                     const category = menuData.categories.find(c => c.id === catId);
                     if (category) {
@@ -868,7 +867,6 @@
                         renderAll(); 
                     }
                 }
-                // 中見出し追加
                 else if (originalTarget.id === 'add-category-btn') {
                      menuData.categories.push({ 
                         id: crypto.randomUUID(),
@@ -879,7 +877,6 @@
                     });
                     renderAll(); 
                 }
-                // 選択削除
                 else if (originalTarget.id === 'delete-selected-btn') {
                     menuData.categories.forEach(category => {
                         category.items = category.items.filter(item => !item.isChecked);
@@ -900,3 +897,4 @@
     </script>
 </body>
 </html>
+```
