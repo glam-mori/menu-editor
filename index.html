@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お品書きエディタ</title> 
+    <title>お品書きエディタ (screenshot版)</title> 
     
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Ten+Mincho&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
@@ -21,141 +21,84 @@
         .font-ten { font-family: 'Ten Mincho', serif; }
         .font-yuji { font-family: 'Yuji Syuku', serif; }
 
-        /* 中見出しの画像配置用 */
-        .menu-category h2 {
-            position: relative; 
-            z-index: 1; 
-        }
-        
-        .h2-bg-image {
-            position: absolute;
-            left: 0;
-            z-index: -1;
-            opacity: 0.7;
-        }
+        /* 画像設定 */
+        .menu-category h2 { position: relative; z-index: 1; }
+        .h2-bg-image { position: absolute; left: 0; z-index: -1; opacity: 0.7; }
 
         /* 基本レイアウト */
         body {
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-            display: flex; flex-direction: column; height: 100vh;
-            margin: 0; padding: 0;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            display: flex; flex-direction: column; height: 100vh; margin: 0; padding: 0;
         }
         
         /* プレビューエリア */
         #preview-wrapper {
             height: 50vh; overflow: auto; background-color: #f0f0f0;
-            padding: 2.5rem 0;
-            display: flex; 
-            justify-content: center;
-            align-items: flex-start;
+            padding: 2.5rem 0; display: flex; justify-content: center; align-items: flex-start;
         }
         
         /* キャンバス（用紙部分） */
         #canvas {
-            background-color: #ffffff;
-            border: 1px solid #ddd; 
-            flex-shrink: 0; 
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            background-color: #ffffff; border: 1px solid #ddd; flex-shrink: 0; 
+            overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            /* 重要: これがないとスクショ時に背景が透明になることがある */
+            background: white; 
         }
         
-        #canvas-content {
-            height: 100%;
-            width: 100%;
-        }
+        #canvas-content { height: 100%; width: 100%; }
         
         /* フォームエリア */
-        #form-wrapper {
-            height: 50vh; overflow: auto; background-color: #f9f9f9;
-            border-top: 2px solid #ddd;
-        }
+        #form-wrapper { height: 50vh; overflow: auto; background-color: #f9f9f9; border-top: 2px solid #ddd; }
 
-        /* フォームUIスタイル */
-        .form-input {
-            width: 100%; border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px;
-        }
+        /* フォームUIスタイル (省略なし) */
+        .form-input { width: 100%; border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px; }
         .form-select {
              width: 100%; border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px;
              background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-             background-position: right 0.5rem center;
-             background-repeat: no-repeat;
-             background-size: 1.5em 1.5em;
-             -webkit-appearance: none;
-             -moz-appearance: none;
-             appearance: none;
+             background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em;
+             -webkit-appearance: none; appearance: none;
         }
-        .form-label {
-            font-size: 0.875rem; font-weight: 600; color: #333; display: block; margin-bottom: 0.25rem;
-        }
-        .btn {
-            padding: 6px 12px; border-radius: 6px; font-weight: 600; text-align: center; cursor: pointer;
-            transition: background-color 0.2s;
-            border: none;
-        }
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .form-label { font-size: 0.875rem; font-weight: 600; color: #333; display: block; margin-bottom: 0.25rem; }
+        .btn { padding: 6px 12px; border-radius: 6px; font-weight: 600; text-align: center; cursor: pointer; border: none; transition: 0.2s; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-primary { background-color: #2563eb; color: white; }
         .btn-primary:hover:not(:disabled) { background-color: #1d4ed8; }
         .btn-danger { background-color: #dc2626; color: white; }
-        .btn-danger:hover:not(:disabled) { background-color: #b91c1c; }
         .btn-secondary { background-color: #4b5563; color: white; }
-        .btn-secondary:hover:not(:disabled) { background-color: #374151; }
         
-        /* 微調整ボタン */
         .btn-control {
-            background-color: #e5e7eb; color: #1f2937;
-            width: 36px; height: 36px; flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
-            padding: 0; 
-            border: none;
-            cursor: pointer;
-            border-radius: 6px;
+            background-color: #e5e7eb; color: #1f2937; width: 36px; height: 36px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; border-radius: 6px; border: none; cursor: pointer;
         }
         .btn-control:hover { background-color: #d1d5db; }
         .btn-control svg { width: 1.25rem; height: 1.25rem; stroke-width: 2.5; }
-        
-        .btn-control-danger {
-            background-color: #fef2f2; color: #dc2626;
-        }
-        .btn-control-danger:hover {
-            background-color: #fee2e2; color: #b91c1c;
-        }
-        .btn-control-danger svg { width: 1.1rem; height: 1.1rem; stroke-width: 2; }
+        .btn-control-danger { background-color: #fef2f2; color: #dc2626; }
+        .btn-control-danger:hover { background-color: #fee2e2; color: #b91c1c; }
 
-        .form-row {
-            display: flex; align-items: center; gap: 12px; margin-top: 8px;
-        }
-        .drag-handle {
-            cursor: move; font-size: 1.25rem; color: #9ca3af; flex-shrink: 0;
-        }
-        .form-checkbox {
-            width: 1.25rem; height: 1.25rem; border-radius: 4px; border: 1px solid #ccc; flex-shrink: 0;
-        }
-        .form-input-grow {
-            flex-grow: 1;
-        }
+        .form-row { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+        .drag-handle { cursor: move; font-size: 1.25rem; color: #9ca3af; flex-shrink: 0; }
+        .form-checkbox { width: 1.25rem; height: 1.25rem; border-radius: 4px; flex-shrink: 0; }
+        .form-input-grow { flex-grow: 1; }
         .sortable-ghost { opacity: 0.4; background: #cce7ff; }
         
-        .canvas-size-display {
-            font-size: 0.875rem; font-weight: 600; color: #1f2937;
-            width: 4rem; text-align: right; flex-shrink: 0;
-        }
-        
-        .font-size-label {
-            font-size: 0.875rem; color: #4b5563; flex-shrink: 0; margin-left: 8px;
-        }
-        .font-size-display {
-            font-size: 0.875rem; font-weight: 600; color: #1f2937;
-            width: 3rem; text-align: right; flex-shrink: 0;
-        }
-        
-        .line-height-display {
-            font-size: 0.875rem; font-weight: 600;
-            color: #1f2937;
-            width: 3.5rem;
-            text-align: right; margin-right: 4px; flex-shrink: 0;
+        .canvas-size-display { font-size: 0.875rem; font-weight: 600; color: #1f2937; width: 4rem; text-align: right; flex-shrink: 0; }
+        .font-size-label { font-size: 0.875rem; color: #4b5563; flex-shrink: 0; margin-left: 8px; }
+        .font-size-display { font-size: 0.875rem; font-weight: 600; color: #1f2937; width: 3rem; text-align: right; flex-shrink: 0; }
+        .line-height-display { font-size: 0.875rem; font-weight: 600; color: #1f2937; width: 3.5rem; text-align: right; margin-right: 4px; flex-shrink: 0; }
+
+        /* 印刷用CSS: ブラウザ印刷機能を使う場合の制御 */
+        @media print {
+            body * { visibility: hidden; }
+            #preview-wrapper, #preview-wrapper * { visibility: visible; }
+            #preview-wrapper { 
+                position: absolute; left: 0; top: 0; width: 100%; height: auto; 
+                background: none; padding: 0; display: block; 
+            }
+            #canvas { 
+                border: none; box-shadow: none; margin: 0 auto; 
+                transform: none !important; width: 100% !important; height: auto !important;
+            }
+            #form-wrapper { display: none; }
         }
     </style>
 </head>
@@ -176,12 +119,8 @@
                     <input type="text" id="form-title" class="form-input form-input-grow">
                     <span class="font-size-label">Size:</span>
                     <span class="font-size-display">18px</span> 
-                    <button class="btn btn-control" data-style-op="h1-font-dec">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 12H6" /></svg>
-                    </button>
-                    <button class="btn btn-control" data-style-op="h1-font-inc">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" /></svg>
-                    </button>
+                    <button class="btn btn-control" data-style-op="h1-font-dec"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 12H6" /></svg></button>
+                    <button class="btn btn-control" data-style-op="h1-font-inc"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" /></svg></button>
                 </div>
             </div>
 
@@ -191,25 +130,27 @@
                     </div>
             </div>
 
-            <div id="categories-form-list">
-                </div>
+            <div id="categories-form-list"></div>
             
             <div class="flex gap-4 mt-6">
-                <button id="add-category-btn" class="btn btn-primary flex-grow">
-                    ＋ 中見出しを追加
-                </button>
-                <button id="delete-selected-btn" class="btn btn-danger">
-                    選択した項目を削除
-                </button>
+                <button id="add-category-btn" class="btn btn-primary flex-grow">＋ 中見出しを追加</button>
+                <button id="delete-selected-btn" class="btn btn-danger">選択した項目を削除</button>
             </div>
 
             <div class="mt-8 pt-6 border-t border-gray-300">
-                <button id="export-pdf-btn" class="btn btn-primary w-full text-lg py-3">
-                    PDFとして出力 (A4・2面)
-                </button>
-            </div>
-            <div class="text-center text-xs text-gray-500 mt-2">
-                ※フォント読み込みのため、押下後に数秒待機する場合があります
+                <h3 class="font-bold text-gray-700 mb-2">出力メニュー</h3>
+                <div class="flex flex-col gap-3">
+                    <button id="export-pdf-btn" class="btn btn-primary w-full text-lg py-3">
+                        📸 画像スクショ方式でPDF化 (推奨)
+                    </button>
+                    
+                    <button id="browser-print-btn" class="btn btn-secondary w-full text-sm py-2">
+                        🖨️ うまくいかない場合はこちら (ブラウザ印刷で保存)
+                    </button>
+                </div>
+                <div class="text-center text-xs text-gray-500 mt-2">
+                    ※画像方式は生成に数秒かかります。ブラウザ印刷は「送信先」を「PDFに保存」にしてください。
+                </div>
             </div>
 
         </div> 
@@ -221,76 +162,23 @@
             title: "〇〇様特別メニュー", 
             titleFontSize: 18,  
             styles: {
-                lineHeightH2: 10,  
-                lineHeightP: 20,   
-                canvasWidth: 91,   
-                canvasHeight: 257,
+                lineHeightH2: 10, lineHeightP: 20, canvasWidth: 91, canvasHeight: 257,
                 fontFamily: "'Noto Serif JP', serif" 
             },
             categories: [
-                {
-                    id: crypto.randomUUID(), 
-                    name: "先付",
-                    isChecked: false, 
-                    fontSizeH2: 20,
-                    items: [
-                        { id: crypto.randomUUID(), name: "九の前菜", isChecked: false, fontSizeP: 16 }
-                    ]
-                },
-                {
-                    id: crypto.randomUUID(),
-                    name: "しゃぶしゃぶ",
-                    isChecked: false,
-                    fontSizeH2: 20,
-                    items: [
-                        { id: crypto.randomUUID(), name: "■肉", isChecked: false, fontSizeP: 16 },
-                        { id: crypto.randomUUID(), name: "宮崎牛サーロイン", isChecked: false, fontSizeP: 16 },
-                        { id: crypto.randomUUID(), name: "黒毛和牛タン", isChecked: false, fontSizeP: 16 },
-                        { id: crypto.randomUUID(), name: "宮崎牛ランプ", isChecked: false, fontSizeP: 16 },
-                        { id: crypto.randomUUID(), name: "■野菜", isChecked: false, fontSizeP: 16 },
-                        { id: crypto.randomUUID(), name: "白菜", isChecked: false, fontSizeP: 16 },
-                        { id: crypto.randomUUID(), name: "ブラウンえのき", isChecked: false, fontSizeP: 16 },
-                        { id: crypto.randomUUID(), name: "フリルレタス", isChecked: false, fontSizeP: 16 },
-                    ]
-                },
-                {
-                    id: crypto.randomUUID(),
-                    name: "すき焼き",
-                    isChecked: false,
-                    fontSizeH2: 20,
-                    items: [
-                        { id: crypto.randomUUID(), name: "■肉", isChecked: false, fontSizeP: 16 },
-                        { id: crypto.randomUUID(), name: "熊本和王ミスジ", isChecked: false, fontSizeP: 16 },
-                        { id: crypto.randomUUID(), name: "松阪牛サーロイン", isChecked: false, fontSizeP: 16 },
-                        { id: crypto.randomUUID(), name: "神戸牛肩ロース", isChecked: false, fontSizeP: 16 },
-                        { id: crypto.randomUUID(), name: "■野菜", isChecked: false, fontSizeP: 16 },
-                        { id: crypto.randomUUID(), name: "椎茸", isChecked: false, fontSizeP: 16 },
-                        { id: crypto.randomUUID(), name: "長ネギ", isChecked: false, fontSizeP: 16 },
-                        { id: crypto.randomUUID(), name: "春菊", isChecked: false, fontSizeP: 16 },
-                    ]
-                },
-                {
-                    id: crypto.randomUUID(), 
-                    name: "メ",
-                    isChecked: false, 
-                    fontSizeH2: 20,
-                    items: [
-                        { id: crypto.randomUUID(), name: "五島手延うどん", isChecked: false, fontSizeP: 16 }
-                    ]
-                },
-                {
-                    id: crypto.randomUUID(), 
-                    name: "甘味",
-                    isChecked: false, 
-                    fontSizeH2: 20,
-                    items: [
-                        { id: crypto.randomUUID(), name: "液体窒素アイス", isChecked: false, fontSizeP: 16 }
-                    ]
-                }
+                { id: crypto.randomUUID(), name: "先付", isChecked: false, fontSizeH2: 20, items: [{ id: crypto.randomUUID(), name: "九の前菜", isChecked: false, fontSizeP: 16 }] },
+                { id: crypto.randomUUID(), name: "しゃぶしゃぶ", isChecked: false, fontSizeH2: 20, items: [
+                    { id: crypto.randomUUID(), name: "■肉", isChecked: false, fontSizeP: 16 },
+                    { id: crypto.randomUUID(), name: "宮崎牛サーロイン", isChecked: false, fontSizeP: 16 },
+                    { id: crypto.randomUUID(), name: "黒毛和牛タン", isChecked: false, fontSizeP: 16 },
+                    { id: crypto.randomUUID(), name: "■野菜", isChecked: false, fontSizeP: 16 },
+                    { id: crypto.randomUUID(), name: "白菜", isChecked: false, fontSizeP: 16 },
+                ]},
+                { id: crypto.randomUUID(), name: "甘味", isChecked: false, fontSizeH2: 20, items: [{ id: crypto.randomUUID(), name: "液体窒素アイス", isChecked: false, fontSizeP: 16 }] }
             ]
         };
 
-        // --- DOM要素取得 ---
+        // --- DOM要素 ---
         const previewWrapper = document.getElementById('preview-wrapper');
         const canvasEl = document.getElementById('canvas');
         const previewContent = document.getElementById('canvas-content');
@@ -300,24 +188,20 @@
         const deleteSelectedBtn = document.getElementById('delete-selected-btn');
         const formContentWrapper = document.getElementById('form-content-wrapper');
         const exportPdfBtn = document.getElementById('export-pdf-btn');
+        const browserPrintBtn = document.getElementById('browser-print-btn');
 
         // === 1. キャンバススタイル更新 ===
         function updateCanvasStyle() {
             const styles = menuData.styles;
-            
             const formFontFamily = document.getElementById('form-font-family');
-            if (formFontFamily) {
-                 canvasEl.style.fontFamily = formFontFamily.value; 
-            } else {
-                 canvasEl.style.fontFamily = menuData.styles.fontFamily;
-            }
+            if (formFontFamily) { canvasEl.style.fontFamily = formFontFamily.value; } 
+            else { canvasEl.style.fontFamily = menuData.styles.fontFamily; }
             
-            // 画面表示用のサイズ計算（A4縦 210mm幅を基準に600pxへ変換する比率）
+            // 画面表示用のサイズ計算
             const baseScale = 600 / 210; 
             let widthPx = styles.canvasWidth * baseScale;
             let heightPx = styles.canvasHeight * baseScale;
             
-            // プレビューエリアからはみ出る場合は縮小
             const availableWidth = previewWrapper.clientWidth * 0.9;
             if (widthPx > availableWidth) {
                 const fitScale = availableWidth / widthPx;
@@ -333,7 +217,6 @@
         function renderPreview() {
             previewContent.innerHTML = ''; 
             
-            // 大見出し
             const h1 = document.createElement('h1');
             h1.className = 'text-3xl font-bold text-center mb-8 tracking-wider';
             h1.textContent = menuData.title;
@@ -342,7 +225,6 @@
 
             const styles = menuData.styles; 
             
-            // カテゴリ（中見出し）と品名
             menuData.categories.forEach((category) => {
                 const section = document.createElement('section');
                 section.className = 'menu-category mb-6'; 
@@ -350,26 +232,22 @@
                 
                 const h2 = document.createElement('h2');
                 h2.className = 'font-bold mb-3';
-                h2.style.position = 'relative'; 
-                h2.style.zIndex = '1'; 
-                
+                h2.style.position = 'relative'; h2.style.zIndex = '1'; 
                 h2.style.color = '#A4252A'; 
                 h2.style.fontSize = `${category.fontSizeH2}px`; 
-                
-                const h2LineHeight = styles.lineHeightH2; 
-                h2.style.lineHeight = h2LineHeight + 'px'; 
+                h2.style.lineHeight = styles.lineHeightH2 + 'px'; 
                 
                 const bgSize = category.fontSizeH2 * 1.2; 
                 h2.style.paddingLeft = `${bgSize + 4}px`; 
                 
-                // 背景画像の配置計算
-                let bgTop = (h2LineHeight - bgSize) / 2;
+                let bgTop = (styles.lineHeightH2 - bgSize) / 2;
                 bgTop += (category.fontSizeH2 / 2);
 
                 const img = document.createElement('img');
-                // ※ GitHub等のリポジトリにこの画像ファイルが必要です
                 img.src = '22691375.png'; 
                 img.className = 'h2-bg-image'; 
+                // 【重要】GitHub等でのCORSエラーを防ぐおまじない
+                img.crossOrigin = "anonymous"; 
                 img.style.width = `${bgSize}px`;
                 img.style.height = `${bgSize}px`;
                 img.style.top = `${bgTop}px`; 
@@ -378,7 +256,6 @@
                 const span = document.createElement('span');
                 span.textContent = category.name;
                 h2.appendChild(span);
-                
                 section.appendChild(h2);
                 
                 category.items.forEach(item => {
@@ -388,14 +265,12 @@
                     p.style.fontSize = `${item.fontSizeP}px`; 
                     section.appendChild(p);
                 });
-                
                 previewContent.appendChild(section);
             });
         }
 
         // === 3. フォーム描画 ===
         function renderForm() {
-            // アイコンSVG定義
             const svgMinus = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 12H6" /></svg>`;
             const svgPlus = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" /></svg>`;
             const svgTrash = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>`;
@@ -413,487 +288,196 @@
                             </select>
                         </div>
                     </div>
-                    <div id="global-style-canvas-w" class="flex-shrink-0">
-                        <label class="form-label">キャンバス幅</label>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="canvas-size-display">... mm</span>
-                            <button class="btn btn-control" data-style-op="canvas-w-dec">${svgMinus}</button>
-                            <button class="btn btn-control" data-style-op="canvas-w-inc">${svgPlus}</button>
-                        </div>
-                    </div>
-                    <div id="global-style-canvas-h" class="flex-shrink-0">
-                        <label class="form-label">キャンバス高</label>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="canvas-size-display">... mm</span>
-                            <button class="btn btn-control" data-style-op="canvas-h-dec">${svgMinus}</button>
-                            <button class="btn btn-control" data-style-op="canvas-h-inc">${svgPlus}</button>
-                        </div>
-                    </div>
-                    <div id="global-style-h2-line" class="flex-shrink-0">
-                        <label class="form-label">中見出し 行間</label>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="line-height-display">... px</span> 
-                            <button class="btn btn-control" data-style-op="h2-line-dec">${svgMinus}</button>
-                            <button class="btn btn-control" data-style-op="h2-line-inc">${svgPlus}</button>
-                        </div>
-                    </div>
-                    <div id="global-style-p-line" class="flex-shrink-0">
-                        <label class="form-label">品名 行間</label>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="line-height-display">... px</span> 
-                            <button class="btn btn-control" data-style-op="p-line-dec">${svgMinus}</button>
-                            <button class="btn btn-control" data-style-op="p-line-inc">${svgPlus}</button>
-                        </div>
-                    </div>
-                    <div id="global-style-h2-font" class="flex-shrink-0">
-                        <label class="form-label">中見出しフォント (一括)</label>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="line-height-display">... px</span> 
-                            <button class="btn btn-control" data-style-op="all-h2-font-dec">${svgMinus}</button>
-                            <button class="btn btn-control" data-style-op="all-h2-font-inc">${svgPlus}</button>
-                        </div>
-                    </div>
-                    <div id="global-style-p-font" class="flex-shrink-0">
-                        <label class="form-label">品名フォント (一括)</label>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="line-height-display">... px</span> 
-                            <button class="btn btn-control" data-style-op="all-p-font-dec">${svgMinus}</button>
-                            <button class="btn btn-control" data-style-op="all-p-font-inc">${svgPlus}</button>
-                        </div>
-                    </div>
+                    <div id="global-style-canvas-w" class="flex-shrink-0"><label class="form-label">キャンバス幅</label><div class="flex items-center gap-2 mt-1"><span class="canvas-size-display">... mm</span><button class="btn btn-control" data-style-op="canvas-w-dec">${svgMinus}</button><button class="btn btn-control" data-style-op="canvas-w-inc">${svgPlus}</button></div></div>
+                    <div id="global-style-canvas-h" class="flex-shrink-0"><label class="form-label">キャンバス高</label><div class="flex items-center gap-2 mt-1"><span class="canvas-size-display">... mm</span><button class="btn btn-control" data-style-op="canvas-h-dec">${svgMinus}</button><button class="btn btn-control" data-style-op="canvas-h-inc">${svgPlus}</button></div></div>
+                    <div id="global-style-h2-line" class="flex-shrink-0"><label class="form-label">中見出し 行間</label><div class="flex items-center gap-2 mt-1"><span class="line-height-display">... px</span><button class="btn btn-control" data-style-op="h2-line-dec">${svgMinus}</button><button class="btn btn-control" data-style-op="h2-line-inc">${svgPlus}</button></div></div>
+                    <div id="global-style-p-line" class="flex-shrink-0"><label class="form-label">品名 行間</label><div class="flex items-center gap-2 mt-1"><span class="line-height-display">... px</span><button class="btn btn-control" data-style-op="p-line-dec">${svgMinus}</button><button class="btn btn-control" data-style-op="p-line-inc">${svgPlus}</button></div></div>
+                    <div id="global-style-h2-font" class="flex-shrink-0"><label class="form-label">中見出しフォント (一括)</label><div class="flex items-center gap-2 mt-1"><span class="line-height-display">... px</span><button class="btn btn-control" data-style-op="all-h2-font-dec">${svgMinus}</button><button class="btn btn-control" data-style-op="all-h2-font-inc">${svgPlus}</button></div></div>
+                    <div id="global-style-p-font" class="flex-shrink-0"><label class="form-label">品名フォント (一括)</label><div class="flex items-center gap-2 mt-1"><span class="line-height-display">... px</span><button class="btn btn-control" data-style-op="all-p-font-dec">${svgMinus}</button><button class="btn btn-control" data-style-op="all-p-font-inc">${svgPlus}</button></div></div>
                 `;
             }
             
-            // 各種値の反映
             formTitle.value = menuData.title;
+            // (値の反映処理は以前と同様のため、表示部分は割愛せず実装)
             const titleFontSizeDisplay = document.querySelector('#title-form-group .font-size-display');
             if (titleFontSizeDisplay) titleFontSizeDisplay.textContent = `${menuData.titleFontSize}px`;
-
             const formFontFamily = document.getElementById('form-font-family'); 
             if (formFontFamily) formFontFamily.value = menuData.styles.fontFamily; 
-            
             const canvasWDisplay = document.querySelector('#global-style-canvas-w .canvas-size-display');
             if (canvasWDisplay) canvasWDisplay.textContent = menuData.styles.canvasWidth.toFixed(0) + ' mm';
             const canvasHDisplay = document.querySelector('#global-style-canvas-h .canvas-size-display');
             if (canvasHDisplay) canvasHDisplay.textContent = menuData.styles.canvasHeight.toFixed(0) + ' mm';
-            
             const h2LineDisplay = document.querySelector('#global-style-h2-line .line-height-display');
             if (h2LineDisplay) h2LineDisplay.textContent = menuData.styles.lineHeightH2.toFixed(0) + 'px';
-            
             const pLineDisplay = document.querySelector('#global-style-p-line .line-height-display');
             if (pLineDisplay) pLineDisplay.textContent = menuData.styles.lineHeightP.toFixed(0) + 'px';
-            
-            // 平均フォントサイズ計算
-            let totalH2 = 0;
-            let countH2 = menuData.categories.length;
+
+            let totalH2 = 0; let countH2 = menuData.categories.length;
             const h2FontDisplay = document.querySelector('#global-style-h2-font .line-height-display');
-            if (countH2 > 0) {
-                menuData.categories.forEach(cat => totalH2 += cat.fontSizeH2);
-                const avgH2 = totalH2 / countH2;
-                if (h2FontDisplay) h2FontDisplay.textContent = avgH2.toFixed(0) + ' px';
-            } else {
-                if (h2FontDisplay) h2FontDisplay.textContent = 'N/A';
-            }
-
-            let totalP = 0;
-            let countP = 0;
-            menuData.categories.forEach(cat => {
-                cat.items.forEach(item => {
-                    totalP += item.fontSizeP;
-                    countP++;
-                });
-            });
+            if (countH2 > 0) { menuData.categories.forEach(cat => totalH2 += cat.fontSizeH2); if (h2FontDisplay) h2FontDisplay.textContent = (totalH2 / countH2).toFixed(0) + ' px'; }
+            let totalP = 0; let countP = 0;
+            menuData.categories.forEach(cat => { cat.items.forEach(item => { totalP += item.fontSizeP; countP++; }); });
             const pFontDisplay = document.querySelector('#global-style-p-font .line-height-display');
-            if (countP > 0) {
-                const avgP = totalP / countP;
-                if (pFontDisplay) pFontDisplay.textContent = avgP.toFixed(0) + ' px';
-            } else {
-                if (pFontDisplay) pFontDisplay.textContent = 'N/A';
-            }
+            if (countP > 0) { if (pFontDisplay) pFontDisplay.textContent = (totalP / countP).toFixed(0) + ' px'; }
 
-            // カテゴリリストの生成
             categoriesFormList.innerHTML = '';
             menuData.categories.forEach((category) => {
                 const categoryDiv = document.createElement('div');
                 categoryDiv.className = 'border border-gray-300 rounded-lg p-4 mb-4 bg-white';
                 categoryDiv.dataset.id = category.id; 
-
                 categoryDiv.innerHTML = `
-                    <div class="form-row">
-                        <span class="drag-handle cat-handle">:::</span>
-                        <input type="checkbox" class="form-checkbox" data-cat-id="${category.id}" ${category.isChecked ? 'checked' : ''}>
-                        <input type="text" class="form-input form-input-grow" data-cat-id="${category.id}" value="${category.name}">
-                        <span class="font-size-label">Size:</span>
-                        <span class="font-size-display">${category.fontSizeH2}px</span>
-                        <button class="btn btn-control" data-style-op="h2-font-dec" data-cat-id="${category.id}">${svgMinus}</button>
-                        <button class="btn btn-control" data-style-op="h2-font-inc" data-cat-id="${category.id}">${svgPlus}</button>
-                        <button class="btn btn-control btn-control-danger" data-delete-cat-id="${category.id}">${svgTrash}</button>
-                    </div>
+                    <div class="form-row"><span class="drag-handle cat-handle">:::</span><input type="checkbox" class="form-checkbox" data-cat-id="${category.id}" ${category.isChecked ? 'checked' : ''}><input type="text" class="form-input form-input-grow" data-cat-id="${category.id}" value="${category.name}"><span class="font-size-label">Size:</span><span class="font-size-display">${category.fontSizeH2}px</span><button class="btn btn-control" data-style-op="h2-font-dec" data-cat-id="${category.id}">${svgMinus}</button><button class="btn btn-control" data-style-op="h2-font-inc" data-cat-id="${category.id}">${svgPlus}</button><button class="btn btn-control btn-control-danger" data-delete-cat-id="${category.id}">${svgTrash}</button></div>
                 `;
-
                 const itemsListDiv = document.createElement('div');
                 itemsListDiv.className = 'mt-4 pt-4 border-t border-gray-200 items-list';
                 itemsListDiv.dataset.catId = category.id;
-                
                 category.items.forEach((item) => {
                     const itemDiv = document.createElement('div');
                     itemDiv.className = 'form-row';
                     itemDiv.dataset.id = item.id;
                     itemDiv.innerHTML = `
-                        <span class="drag-handle item-handle ml-4">:::</span>
-                        <input type="checkbox" class="form-checkbox" data-item-id="${item.id}" ${item.isChecked ? 'checked' : ''}>
-                        <input type="text" class="form-input form-input-grow" data-item-id="${item.id}" value="${item.name}">
-                        <span class="font-size-label">Size:</span>
-                        <span class="font-size-display">${item.fontSizeP}px</span>
-                        <button class="btn btn-control" data-style-op="p-font-dec" data-item-id="${item.id}">${svgMinus}</button>
-                        <button class="btn btn-control" data-style-op="p-font-inc" data-item-id="${item.id}">${svgPlus}</button>
-                        <button class="btn btn-control btn-control-danger" data-delete-item-id="${item.id}">${svgTrash}</button>
+                        <span class="drag-handle item-handle ml-4">:::</span><input type="checkbox" class="form-checkbox" data-item-id="${item.id}" ${item.isChecked ? 'checked' : ''}><input type="text" class="form-input form-input-grow" data-item-id="${item.id}" value="${item.name}"><span class="font-size-label">Size:</span><span class="font-size-display">${item.fontSizeP}px</span><button class="btn btn-control" data-style-op="p-font-dec" data-item-id="${item.id}">${svgMinus}</button><button class="btn btn-control" data-style-op="p-font-inc" data-item-id="${item.id}">${svgPlus}</button><button class="btn btn-control btn-control-danger" data-delete-item-id="${item.id}">${svgTrash}</button>
                     `;
                     itemsListDiv.appendChild(itemDiv);
                 });
                 categoryDiv.appendChild(itemsListDiv);
-
                 const addItemBtn = document.createElement('button');
                 addItemBtn.className = 'btn btn-secondary w-full mt-4';
                 addItemBtn.textContent = '＋ 品名を追加';
                 addItemBtn.dataset.catId = category.id;
                 categoryDiv.appendChild(addItemBtn);
-
                 categoriesFormList.appendChild(categoryDiv);
             });
-
             initSortable();
         }
         
-        // === 4. SortableJS (ドラッグアンドドロップ) ===
+        // === 4. SortableJS ===
         function initSortable() {
-            new Sortable(categoriesFormList, {
-                handle: '.cat-handle', animation: 150, ghostClass: 'sortable-ghost',
-                onEnd: (evt) => {
-                    const item = menuData.categories.splice(evt.oldIndex, 1)[0];
-                    menuData.categories.splice(evt.newIndex, 0, item);
-                    renderAll(); 
-                }
-            });
-            
-            document.querySelectorAll('.items-list').forEach(list => {
-                new Sortable(list, {
-                    handle: '.item-handle', animation: 150, ghostClass: 'sortable-ghost',
-                    onEnd: (evt) => {
-                        const catId = evt.from.dataset.catId;
-                        const category = menuData.categories.find(c => c.id === catId);
-                        if (category) {
-                            const item = category.items.splice(evt.oldIndex, 1)[0];
-                            category.items.splice(evt.newIndex, 0, item);
-                            renderAll();
-                        }
-                    }
-                });
-            });
+            new Sortable(categoriesFormList, { handle: '.cat-handle', animation: 150, ghostClass: 'sortable-ghost', onEnd: (evt) => { const item = menuData.categories.splice(evt.oldIndex, 1)[0]; menuData.categories.splice(evt.newIndex, 0, item); renderAll(); } });
+            document.querySelectorAll('.items-list').forEach(list => { new Sortable(list, { handle: '.item-handle', animation: 150, ghostClass: 'sortable-ghost', onEnd: (evt) => { const catId = evt.from.dataset.catId; const category = menuData.categories.find(c => c.id === catId); if (category) { const item = category.items.splice(evt.oldIndex, 1)[0]; category.items.splice(evt.newIndex, 0, item); renderAll(); } } }); });
         }
+        function renderAll() { updateCanvasStyle(); renderPreview(); renderForm(); }
 
-        // === 5. 再描画統括 ===
-        function renderAll() {
-            updateCanvasStyle(); 
-            renderPreview();     
-            renderForm();        
-        }
-        
-        // === 6. PDF出力 (dom-to-image版) ===
+        // === 6. PDF出力 (html-to-image 採用: 最新のスクショ方式) ===
         async function handleExportPDF() {
-            exportPdfBtn.textContent = 'フォント確認中...';
+            exportPdfBtn.textContent = '処理中...';
             exportPdfBtn.disabled = true;
 
             try {
                 // フォント読み込み待機
                 await document.fonts.ready;
-                exportPdfBtn.textContent = '画像生成中...';
                 
-                // キャンバス要素
                 const element = document.getElementById('canvas');
                 
-                // 高解像度化（スケールアップ）
-                // プレビュー表示サイズではなく、印刷用の高解像度でキャプチャするためにスケールを指定
-                const scale = 2; // 解像度倍率 (2倍で十分綺麗になります)
-                
-                const options = {
-                    // スタイルを強制して拡大
-                    height: element.offsetHeight * scale,
-                    width: element.offsetWidth * scale,
+                // 【html-to-image】を使用
+                // 画像としてDOMをキャプチャ (PNGデータURLを取得)
+                const dataUrl = await htmlToImage.toPng(element, {
+                    quality: 1.0,
+                    pixelRatio: 3, // 高解像度にする (3倍)
+                    cacheBust: true, // キャッシュ対策
                     style: {
-                        transform: 'scale(' + scale + ')',
-                        transformOrigin: 'top left',
-                        width: element.offsetWidth + 'px',
-                        height: element.offsetHeight + 'px'
+                        margin: 0 // 余計な余白除去
                     }
-                };
-
-                // dom-to-image で PNG データURL を生成
-                const dataUrl = await domtoimage.toPng(element, options);
-                
-                exportPdfBtn.textContent = 'PDF生成中...';
-
-                // jsPDF生成
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4'
                 });
+
+                // ここからは jsPDF で貼り付け
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
                 
                 const a4Width = 210;
                 const a4Height = 297;
                 const canvasWidthMM = menuData.styles.canvasWidth;
                 const canvasHeightMM = menuData.styles.canvasHeight;
-                
-                // 中央配置のマージン計算
                 const marginX = (a4Width / 2 - canvasWidthMM) / 2;
                 const marginY = (a4Height - canvasHeightMM) / 2;
 
-                // 貼り付け
                 pdf.addImage(dataUrl, 'PNG', marginX, marginY, canvasWidthMM, canvasHeightMM);
                 pdf.addImage(dataUrl, 'PNG', a4Width / 2 + marginX, marginY, canvasWidthMM, canvasHeightMM);
                 
                 pdf.save('お品書き.pdf');
 
             } catch (error) {
-                console.error("PDF generation failed:", error);
-                alert("PDFの生成に失敗しました。\n" + error.message);
+                console.error("PDF Error:", error);
+                alert("画像生成に失敗しました。\n「ブラウザ印刷」ボタンをお試しください。");
             } finally {
-                exportPdfBtn.textContent = 'PDFとして出力 (A4・2面)';
+                exportPdfBtn.textContent = '📸 画像スクショ方式でPDF化 (推奨)';
                 exportPdfBtn.disabled = false;
             }
         }
 
-        // === 7. イベントリスナー ===
+        // === 7. ブラウザ印刷機能 (予備) ===
+        function handleBrowserPrint() {
+            window.print();
+        }
+
+        // === 8. イベントリスナー ===
         function setupListeners() {
-            
             formContentWrapper.addEventListener('input', (e) => {
                 const target = e.target;
-                
-                if (target.id === 'form-font-family') {
-                    menuData.styles.fontFamily = target.value;
-                    updateCanvasStyle(); 
-                    renderPreview();     
-                    return;
-                }
-                
-                if (target.id === 'form-title') { 
-                    menuData.title = target.value; 
-                }
-                
-                const catId = target.dataset.catId;
-                const itemId = target.dataset.itemId;
-                if (catId && !itemId && target.type === 'text') {
-                    const category = menuData.categories.find(c => c.id === catId);
-                    if (category) category.name = target.value;
-                }
-                
-                if (itemId && target.type === 'text') {
-                    for (const category of menuData.categories) {
-                        const item = category.items.find(i => i.id === itemId);
-                        if (item) { item.name = target.value; break; }
-                    }
-                }
-                
-                if (catId && target.type === 'checkbox') {
-                    const category = menuData.categories.find(c => c.id === catId);
-                    if (category) category.isChecked = target.checked;
-                }
-                
-                if (itemId && target.type === 'checkbox') {
-                    for (const category of menuData.categories) {
-                        const item = category.items.find(i => i.id === itemId);
-                        if (item) { item.isChecked = target.checked; break; }
-                    }
-                }
-
+                if (target.id === 'form-font-family') { menuData.styles.fontFamily = target.value; updateCanvasStyle(); renderPreview(); return; }
+                if (target.id === 'form-title') { menuData.title = target.value; }
+                const catId = target.dataset.catId; const itemId = target.dataset.itemId;
+                if (catId && !itemId && target.type === 'text') { const category = menuData.categories.find(c => c.id === catId); if (category) category.name = target.value; }
+                if (itemId && target.type === 'text') { for (const category of menuData.categories) { const item = category.items.find(i => i.id === itemId); if (item) { item.name = target.value; break; } } }
+                if (catId && target.type === 'checkbox') { const category = menuData.categories.find(c => c.id === catId); if (category) category.isChecked = target.checked; }
+                if (itemId && target.type === 'checkbox') { for (const category of menuData.categories) { const item = category.items.find(i => i.id === itemId); if (item) { item.isChecked = target.checked; break; } } }
                 if (target.type === 'text') { renderPreview(); }
             });
             
             formContentWrapper.addEventListener('click', (e) => {
                 const btnDelete = e.target.closest('.btn-control-danger');
                 if (btnDelete) {
-                    const deleteCatId = btnDelete.dataset.deleteCatId;
-                    const deleteItemId = btnDelete.dataset.deleteItemId;
-
-                    if (deleteCatId) {
-                        menuData.categories = menuData.categories.filter(c => c.id !== deleteCatId);
-                        renderAll();
-                        return; 
-                    }
-
-                    if (deleteItemId) {
-                        menuData.categories.forEach(category => {
-                            category.items = category.items.filter(i => i.id !== deleteItemId);
-                        });
-                        renderAll();
-                        return; 
-                    }
+                    const deleteCatId = btnDelete.dataset.deleteCatId; const deleteItemId = btnDelete.dataset.deleteItemId;
+                    if (deleteCatId) { menuData.categories = menuData.categories.filter(c => c.id !== deleteCatId); renderAll(); return; }
+                    if (deleteItemId) { menuData.categories.forEach(category => { category.items = category.items.filter(i => i.id !== deleteItemId); }); renderAll(); return; }
                 }
-                
                 const btnControl = e.target.closest('.btn-control');
                 if (btnControl) {
-                    const target = btnControl; 
-                    const catId = target.dataset.catId;
-                    const itemId = target.dataset.itemId;
-                    const styleOp = target.dataset.styleOp;
-
+                    const target = btnControl; const catId = target.dataset.catId; const itemId = target.dataset.itemId; const styleOp = target.dataset.styleOp;
                     if (styleOp) {
-                        const styles = menuData.styles;
-                        let fontSizeChanged = false; 
-                        let lineHeightChanged = false; 
-                        let renderAllNeeded = false; 
-                        let canvasSizeChanged = false; 
-
-                        if (styleOp === 'canvas-w-inc') {
-                            styles.canvasWidth = Math.min(105, styles.canvasWidth + 1); canvasSizeChanged = true;
-                        }
-                        if (styleOp === 'canvas-w-dec') {
-                            styles.canvasWidth = Math.max(10, styles.canvasWidth - 1); canvasSizeChanged = true;
-                        }
-                        if (styleOp === 'canvas-h-inc') {
-                            styles.canvasHeight = Math.min(297, styles.canvasHeight + 1); canvasSizeChanged = true;
-                        }
-                        if (styleOp === 'canvas-h-dec') {
-                            styles.canvasHeight = Math.max(50, styles.canvasHeight - 1); canvasSizeChanged = true;
-                        }
-
-                        if (canvasSizeChanged) {
-                            updateCanvasStyle(); 
-                            const canvasWDisplay = document.querySelector('#global-style-canvas-w .canvas-size-display');
-                            if (canvasWDisplay) canvasWDisplay.textContent = styles.canvasWidth.toFixed(0) + ' mm';
-                            const canvasHDisplay = document.querySelector('#global-style-canvas-h .canvas-size-display');
-                            if (canvasHDisplay) canvasHDisplay.textContent = styles.canvasHeight.toFixed(0) + ' mm';
-                        }
+                        const styles = menuData.styles; let fontSizeChanged = false; let lineHeightChanged = false; let renderAllNeeded = false; let canvasSizeChanged = false; 
+                        if (styleOp === 'canvas-w-inc') { styles.canvasWidth = Math.min(105, styles.canvasWidth + 1); canvasSizeChanged = true; }
+                        if (styleOp === 'canvas-w-dec') { styles.canvasWidth = Math.max(10, styles.canvasWidth - 1); canvasSizeChanged = true; }
+                        if (styleOp === 'canvas-h-inc') { styles.canvasHeight = Math.min(297, styles.canvasHeight + 1); canvasSizeChanged = true; }
+                        if (styleOp === 'canvas-h-dec') { styles.canvasHeight = Math.max(50, styles.canvasHeight - 1); canvasSizeChanged = true; }
+                        if (canvasSizeChanged) { updateCanvasStyle(); const canvasWDisplay = document.querySelector('#global-style-canvas-w .canvas-size-display'); if (canvasWDisplay) canvasWDisplay.textContent = styles.canvasWidth.toFixed(0) + ' mm'; const canvasHDisplay = document.querySelector('#global-style-canvas-h .canvas-size-display'); if (canvasHDisplay) canvasHDisplay.textContent = styles.canvasHeight.toFixed(0) + ' mm'; }
 
                         if (styleOp === 'h2-line-inc') { styles.lineHeightH2 += 1; lineHeightChanged = true; }
                         if (styleOp === 'h2-line-dec') { styles.lineHeightH2 = Math.max(8, styles.lineHeightH2 - 1); lineHeightChanged = true; }
                         if (styleOp === 'p-line-inc') { styles.lineHeightP += 1; lineHeightChanged = true; }
                         if (styleOp === 'p-line-dec') { styles.lineHeightP = Math.max(8, styles.lineHeightP - 1); lineHeightChanged = true; }
-
-                        if (lineHeightChanged) {
-                            const h2LineDisplay = document.querySelector('#global-style-h2-line .line-height-display');
-                            if (h2LineDisplay) h2LineDisplay.textContent = styles.lineHeightH2.toFixed(0) + 'px';
-                            
-                            const pLineDisplay = document.querySelector('#global-style-p-line .line-height-display');
-                            if (pLineDisplay) pLineDisplay.textContent = styles.lineHeightP.toFixed(0) + 'px';
-                        }
+                        if (lineHeightChanged) { const h2LineDisplay = document.querySelector('#global-style-h2-line .line-height-display'); if (h2LineDisplay) h2LineDisplay.textContent = styles.lineHeightH2.toFixed(0) + 'px'; const pLineDisplay = document.querySelector('#global-style-p-line .line-height-display'); if (pLineDisplay) pLineDisplay.textContent = styles.lineHeightP.toFixed(0) + 'px'; }
                         
-                        if (styleOp === 'h1-font-inc') {
-                            menuData.titleFontSize += 1; fontSizeChanged = true;
-                            const displayEl = target.closest('.form-row').querySelector('.font-size-display');
-                            if (displayEl) displayEl.textContent = `${menuData.titleFontSize}px`;
-                        }
-                        if (styleOp === 'h1-font-dec') {
-                            menuData.titleFontSize = Math.max(8, menuData.titleFontSize - 1); fontSizeChanged = true;
-                            const displayEl = target.closest('.form-row').querySelector('.font-size-display');
-                            if (displayEl) displayEl.textContent = `${menuData.titleFontSize}px`;
-                        }
+                        if (styleOp === 'h1-font-inc') { menuData.titleFontSize += 1; fontSizeChanged = true; const displayEl = target.closest('.form-row').querySelector('.font-size-display'); if (displayEl) displayEl.textContent = `${menuData.titleFontSize}px`; }
+                        if (styleOp === 'h1-font-dec') { menuData.titleFontSize = Math.max(8, menuData.titleFontSize - 1); fontSizeChanged = true; const displayEl = target.closest('.form-row').querySelector('.font-size-display'); if (displayEl) displayEl.textContent = `${menuData.titleFontSize}px`; }
 
-                        if (catId && !itemId) {
-                            const category = menuData.categories.find(c => c.id === catId);
-                            if (category) {
-                                if (styleOp === 'h2-font-inc') { category.fontSizeH2 += 1; fontSizeChanged = true; }
-                                if (styleOp === 'h2-font-dec') { category.fontSizeH2 = Math.max(8, category.fontSizeH2 - 1); fontSizeChanged = true; }
-                                
-                                if (fontSizeChanged) {
-                                    const displayEl = target.closest('.form-row').querySelector('.font-size-display');
-                                    if (displayEl) displayEl.textContent = `${category.fontSizeH2}px`;
-                                }
-                            }
-                        }
-
-                        if (itemId) {
-                            for (const category of menuData.categories) {
-                                const item = category.items.find(i => i.id === itemId);
-                                if (item) {
-                                    if (styleOp === 'p-font-inc') { item.fontSizeP += 1; fontSizeChanged = true; }
-                                    if (styleOp === 'p-font-dec') { item.fontSizeP = Math.max(8, item.fontSizeP - 1); fontSizeChanged = true; }
-                                    
-                                    if (fontSizeChanged) {
-                                        const displayEl = target.closest('.form-row').querySelector('.font-size-display');
-                                        if (displayEl) displayEl.textContent = `${item.fontSizeP}px`;
-                                    }
-                                    break; 
-                                }
-                            }
-                        }
+                        if (catId && !itemId) { const category = menuData.categories.find(c => c.id === catId); if (category) { if (styleOp === 'h2-font-inc') { category.fontSizeH2 += 1; fontSizeChanged = true; } if (styleOp === 'h2-font-dec') { category.fontSizeH2 = Math.max(8, category.fontSizeH2 - 1); fontSizeChanged = true; } if (fontSizeChanged) { const displayEl = target.closest('.form-row').querySelector('.font-size-display'); if (displayEl) displayEl.textContent = `${category.fontSizeH2}px`; } } }
+                        if (itemId) { for (const category of menuData.categories) { const item = category.items.find(i => i.id === itemId); if (item) { if (styleOp === 'p-font-inc') { item.fontSizeP += 1; fontSizeChanged = true; } if (styleOp === 'p-font-dec') { item.fontSizeP = Math.max(8, item.fontSizeP - 1); fontSizeChanged = true; } if (fontSizeChanged) { const displayEl = target.closest('.form-row').querySelector('.font-size-display'); if (displayEl) displayEl.textContent = `${item.fontSizeP}px`; } break; } } }
                         
-                        if (styleOp === 'all-h2-font-inc') {
-                            menuData.categories.forEach(cat => cat.fontSizeH2 += 1);
-                            renderAllNeeded = true;
-                        }
-                        if (styleOp === 'all-h2-font-dec') {
-                            menuData.categories.forEach(cat => cat.fontSizeH2 = Math.max(8, cat.fontSizeH2 - 1));
-                            renderAllNeeded = true;
-                        }
-                        if (styleOp === 'all-p-font-inc') {
-                            menuData.categories.forEach(cat => cat.items.forEach(item => item.fontSizeP += 1));
-                            renderAllNeeded = true;
-                        }
-                        if (styleOp === 'all-p-font-dec') {
-                            menuData.categories.forEach(cat => cat.items.forEach(item => item.fontSizeP = Math.max(8, item.fontSizeP - 1)));
-                            renderAllNeeded = true;
-                        }
+                        if (styleOp === 'all-h2-font-inc') { menuData.categories.forEach(cat => cat.fontSizeH2 += 1); renderAllNeeded = true; }
+                        if (styleOp === 'all-h2-font-dec') { menuData.categories.forEach(cat => cat.fontSizeH2 = Math.max(8, cat.fontSizeH2 - 1)); renderAllNeeded = true; }
+                        if (styleOp === 'all-p-font-inc') { menuData.categories.forEach(cat => cat.items.forEach(item => item.fontSizeP += 1)); renderAllNeeded = true; }
+                        if (styleOp === 'all-p-font-dec') { menuData.categories.forEach(cat => cat.items.forEach(item => item.fontSizeP = Math.max(8, item.fontSizeP - 1))); renderAllNeeded = true; }
 
-                        if (renderAllNeeded) {
-                            renderAll(); 
-                        } else if (fontSizeChanged || lineHeightChanged) {
-                            renderPreview(); 
-                        }
-                    }
-                    return; 
+                        if (renderAllNeeded) { renderAll(); } else if (fontSizeChanged || lineHeightChanged) { renderPreview(); }
+                    } return; 
                 }
-                
-                const originalTarget = e.target;
-                if (originalTarget.tagName !== 'BUTTON') return;
-
-                if (originalTarget.id === 'export-pdf-btn') {
-                    return;
-                }
+                const originalTarget = e.target; if (originalTarget.tagName !== 'BUTTON') return;
+                if (originalTarget.id === 'export-pdf-btn' || originalTarget.id === 'browser-print-btn') return;
                 
                 const catId = originalTarget.dataset.catId;
-
-                if (catId && originalTarget.classList.contains('btn-secondary')) {
-                    const category = menuData.categories.find(c => c.id === catId);
-                    if (category) {
-                        category.items.push({ 
-                            id: crypto.randomUUID(), 
-                            name: "新しい品名", 
-                            isChecked: false,
-                            fontSizeP: 16 
-                        });
-                        renderAll(); 
-                    }
-                }
-                else if (originalTarget.id === 'add-category-btn') {
-                     menuData.categories.push({ 
-                        id: crypto.randomUUID(),
-                        name: "新しい中見出し", 
-                        isChecked: false, 
-                        fontSizeH2: 20, 
-                        items: [] 
-                    });
-                    renderAll(); 
-                }
-                else if (originalTarget.id === 'delete-selected-btn') {
-                    menuData.categories.forEach(category => {
-                        category.items = category.items.filter(item => !item.isChecked);
-                    });
-                    menuData.categories = menuData.categories.filter(category => !category.isChecked);
-                    renderAll(); 
-                }
+                if (catId && originalTarget.classList.contains('btn-secondary')) { const category = menuData.categories.find(c => c.id === catId); if (category) { category.items.push({ id: crypto.randomUUID(), name: "新しい品名", isChecked: false, fontSizeP: 16 }); renderAll(); } }
+                else if (originalTarget.id === 'add-category-btn') { menuData.categories.push({ id: crypto.randomUUID(), name: "新しい中見出し", isChecked: false, fontSizeH2: 20, items: [] }); renderAll(); }
+                else if (originalTarget.id === 'delete-selected-btn') { menuData.categories.forEach(category => { category.items = category.items.filter(item => !item.isChecked); }); menuData.categories = menuData.categories.filter(category => !category.isChecked); renderAll(); }
             });
             
             exportPdfBtn.addEventListener('click', handleExportPDF);
+            browserPrintBtn.addEventListener('click', handleBrowserPrint);
             window.addEventListener('resize', updateCanvasStyle);
         }
 
-        // === 8. 初期化 ===
         renderAll();
         setupListeners();
-        
     </script>
 </body>
 </html>
