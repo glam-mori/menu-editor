@@ -10,18 +10,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <!-- (v22) html2canvas.min.js を再追加 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- (v22) v21で追加した cjk プラグインは削除 (v20の構成に戻す) -->
-
 
     <style>
+        /* フォント定義 */
         .font-noto { font-family: 'Noto Serif JP', serif; }
         .font-ten { font-family: 'Ten Mincho', serif; }
         .font-yuji { font-family: 'Yuji Syuku', serif; }
 
+        /* 中見出しの画像配置用 */
         .menu-category h2 {
             position: relative; 
             z-index: 1; 
@@ -34,11 +34,14 @@
             opacity: 0.7;
         }
 
-        /* --- 基本レイアウト (v20に戻す) --- */
+        /* 基本レイアウト */
         body {
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
             display: flex; flex-direction: column; height: 100vh;
+            margin: 0; padding: 0;
         }
+        
+        /* プレビューエリア */
         #preview-wrapper {
             height: 50vh; overflow: auto; background-color: #f0f0f0;
             padding: 2.5rem 0;
@@ -46,25 +49,28 @@
             justify-content: center;
             align-items: flex-start;
         }
+        
+        /* キャンバス（用紙部分） */
         #canvas {
             background-color: #ffffff;
             border: 1px solid #ddd; 
             flex-shrink: 0; 
             overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        /* (v22) canvas-content の padding を v20 の Tailwind に戻す */
+        
         #canvas-content {
             height: 100%;
             width: 100%;
-            /* (v21のmm指定を削除) */
         }
         
+        /* フォームエリア */
         #form-wrapper {
             height: 50vh; overflow: auto; background-color: #f9f9f9;
             border-top: 2px solid #ddd;
         }
 
-        /* --- フォームUIスタイル (変更なし) --- */
+        /* フォームUIスタイル */
         .form-input {
             width: 100%; border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px;
         }
@@ -79,11 +85,12 @@
              appearance: none;
         }
         .form-label {
-            font-size: 0.875rem; font-weight: 600; color: #333;
+            font-size: 0.875rem; font-weight: 600; color: #333; display: block; margin-bottom: 0.25rem;
         }
         .btn {
             padding: 6px 12px; border-radius: 6px; font-weight: 600; text-align: center; cursor: pointer;
             transition: background-color 0.2s;
+            border: none;
         }
         .btn:disabled {
             opacity: 0.5;
@@ -96,11 +103,15 @@
         .btn-secondary { background-color: #4b5563; color: white; }
         .btn-secondary:hover:not(:disabled) { background-color: #374151; }
         
+        /* 微調整ボタン */
         .btn-control {
             background-color: #e5e7eb; color: #1f2937;
             width: 36px; height: 36px; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center;
             padding: 0; 
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
         }
         .btn-control:hover { background-color: #d1d5db; }
         .btn-control svg { width: 1.25rem; height: 1.25rem; stroke-width: 2.5; }
@@ -112,7 +123,6 @@
             background-color: #fee2e2; color: #b91c1c;
         }
         .btn-control-danger svg { width: 1.1rem; height: 1.1rem; stroke-width: 2; }
-
 
         .form-row {
             display: flex; align-items: center; gap: 12px; margin-top: 8px;
@@ -128,7 +138,6 @@
         }
         .sortable-ghost { opacity: 0.4; background: #cce7ff; }
         
-        .mm-label { font-size: 0.875rem; color: #6b7280; flex-shrink: 0; }
         .canvas-size-display {
             font-size: 0.875rem; font-weight: 600; color: #1f2937;
             width: 4rem; text-align: right; flex-shrink: 0;
@@ -145,31 +154,22 @@
         .line-height-display {
             font-size: 0.875rem; font-weight: 600;
             color: #1f2937;
-            width: 3.5rem; /* 56px */
+            width: 3.5rem;
             text-align: right; margin-right: 4px; flex-shrink: 0;
-        }
-        .line-height-display.w-20 {
-            width: 5rem; /* 80px */
-            display: inline-block; 
         }
     </style>
 </head>
 <body>
 
-    <!-- 1. プレビューエリア -->
     <div id="preview-wrapper">
         <div id="canvas">
-             <!-- (v22) v20 のラッパーに戻す -->
             <div id="canvas-content" class="h-full w-full py-10 px-8 text-gray-800">
-                <!-- JSで生成 -->
-            </div>
+                </div>
         </div>
     </div>
 
-    <!-- 2. 入力フォームエリア (v21と変更なし) -->
     <div id="form-wrapper">
         <div class="p-4" id="form-content-wrapper">
-            <!-- 大見出しフォーム -->
             <div class="mb-4" id="title-form-group">
                 <label class="form-label">大見出し</label>
                 <div class="form-row">
@@ -185,20 +185,15 @@
                 </div>
             </div>
 
-            <!-- 全体設定フォーム -->
             <div class="mb-4 p-4 border border-gray-300 rounded-lg bg-white">
                 <h3 class="form-label mb-2">全体設定</h3>
                 <div class="flex flex-wrap gap-x-6 gap-y-4">
-                    <!-- JSで生成 -->
-                </div>
+                    </div>
             </div>
 
-            <!-- 中見出し・品名フォーム (JSで生成) -->
             <div id="categories-form-list">
-                <!-- JSで中見出しリストが挿入されます -->
-            </div>
+                </div>
             
-            <!-- 操作ボタン -->
             <div class="flex gap-4 mt-6">
                 <button id="add-category-btn" class="btn btn-primary flex-grow">
                     ＋ 中見出しを追加
@@ -208,19 +203,20 @@
                 </button>
             </div>
 
-            <!-- PDF出力ボタン -->
             <div class="mt-8 pt-6 border-t border-gray-300">
                 <button id="export-pdf-btn" class="btn btn-primary w-full text-lg py-3">
                     PDFとして出力 (A4・2面)
                 </button>
             </div>
+            <div class="text-center text-xs text-gray-500 mt-2">
+                ※フォントの読み込み完了まで数秒かかる場合があります
+            </div>
 
-        </div> <!-- p-4 wrapper end -->
-    </div> <!-- form-wrapper end -->
+        </div> 
+    </div>
 
-    <!-- 3. JavaScript -->
     <script>
-        // --- アプリの核となるデータ (v21と変更なし) ---
+        // --- データ初期設定 ---
         let menuData = {
             title: "〇〇様特別メニュー", 
             titleFontSize: 18,  
@@ -293,10 +289,8 @@
                 }
             ]
         };
-        
-        // (v22) v21で追加した定数を削除
 
-        // --- HTML要素を取得 (v21と変更なし) ---
+        // --- DOM要素取得 ---
         const previewWrapper = document.getElementById('preview-wrapper');
         const canvasEl = document.getElementById('canvas');
         const previewContent = document.getElementById('canvas-content');
@@ -307,7 +301,7 @@
         const formContentWrapper = document.getElementById('form-content-wrapper');
         const exportPdfBtn = document.getElementById('export-pdf-btn');
 
-        // === 1. キャンバスサイズ更新 (v20のロジックに戻す) ===
+        // === 1. キャンバススタイル更新 ===
         function updateCanvasStyle() {
             const styles = menuData.styles;
             
@@ -318,33 +312,29 @@
                  canvasEl.style.fontFamily = menuData.styles.fontFamily;
             }
             
-            // (v22) v20のロジック (pxベースのスケール計算) に戻す
+            // 画面表示用のサイズ計算（A4縦 210mm幅を基準に600pxへ変換する比率）
             const baseScale = 600 / 210; 
             let widthPx = styles.canvasWidth * baseScale;
             let heightPx = styles.canvasHeight * baseScale;
             
+            // プレビューエリアからはみ出る場合は縮小
             const availableWidth = previewWrapper.clientWidth * 0.9;
             if (widthPx > availableWidth) {
-                const fitScale = availableWidth / styles.canvasWidth;
-                widthPx = styles.canvasWidth * fitScale;
-                heightPx = styles.canvasHeight * fitScale;
+                const fitScale = availableWidth / widthPx;
+                widthPx = widthPx * fitScale;
+                heightPx = heightPx * fitScale;
             }
             
             canvasEl.style.width = `${widthPx}px`;
             canvasEl.style.height = `${heightPx}px`;
-            
-            // (v22) v21の transform: scale() を削除
-            canvasEl.style.transform = ``;
-            canvasEl.style.transformOrigin = '';
         }
 
-        // === 2. プレビュー内容生成 (v20-fixのロジックに戻す) ===
+        // === 2. プレビュー描画 ===
         function renderPreview() {
             previewContent.innerHTML = ''; 
             
             // 大見出し
             const h1 = document.createElement('h1');
-            // (v22) v20のTailwindクラスに戻す
             h1.className = 'text-3xl font-bold text-center mb-8 tracking-wider';
             h1.textContent = menuData.title;
             h1.style.fontSize = `${menuData.titleFontSize}px`;
@@ -352,18 +342,16 @@
 
             const styles = menuData.styles; 
             
-            // 中見出し・品名
+            // カテゴリ（中見出し）と品名
             menuData.categories.forEach((category) => {
                 const section = document.createElement('section');
-                // (v22) v20のTailwindクラスに戻す
                 section.className = 'menu-category mb-6'; 
                 section.style.lineHeight = styles.lineHeightP + 'px'; 
                 
                 const h2 = document.createElement('h2');
-                // (v22) v20のTailwindクラスに戻す
                 h2.className = 'font-bold mb-3';
-                h2.style.position = 'relative'; // v20から維持
-                h2.style.zIndex = '1';          // v20から維持
+                h2.style.position = 'relative'; 
+                h2.style.zIndex = '1'; 
                 
                 h2.style.color = '#A4252A'; 
                 h2.style.fontSize = `${category.fontSizeH2}px`; 
@@ -372,14 +360,14 @@
                 h2.style.lineHeight = h2LineHeight + 'px'; 
                 
                 const bgSize = category.fontSizeH2 * 1.2; 
-                // (v22) v20のpx指定に戻す
                 h2.style.paddingLeft = `${bgSize + 4}px`; 
                 
-                // (v20-fix) ズレ対策: JSでtopを計算 (フォント半分下にずらす)
+                // 背景画像の配置計算
                 let bgTop = (h2LineHeight - bgSize) / 2;
                 bgTop += (category.fontSizeH2 / 2);
 
                 const img = document.createElement('img');
+                // ※ GitHub等のリポジトリにこの画像ファイルが必要です
                 img.src = '22691375.png'; 
                 img.className = 'h2-bg-image'; 
                 img.style.width = `${bgSize}px`;
@@ -396,7 +384,6 @@
                 category.items.forEach(item => {
                     const p = document.createElement('p');
                     p.textContent = item.name;
-                    // (v22) v20のTailwindクラス (pl-8) に戻す
                     p.className = 'menu-item pl-8';
                     p.style.fontSize = `${item.fontSizeP}px`; 
                     section.appendChild(p);
@@ -406,9 +393,9 @@
             });
         }
 
-        // === 3. フォームを生成する関数 (v21とほぼ同じ) ===
+        // === 3. フォーム描画 ===
         function renderForm() {
-            
+            // アイコンSVG定義
             const svgMinus = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 12H6" /></svg>`;
             const svgPlus = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" /></svg>`;
             const svgTrash = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>`;
@@ -417,7 +404,6 @@
             if (globalSettingsDiv) {
                 globalSettingsDiv.innerHTML = `
                     <div class="flex-shrink-0" style="width: 200px;">
-                        <!-- (v22) v21 の「プレビュー用」注釈を削除 -->
                         <label class="form-label">フォント</label>
                         <div class="flex items-center gap-2 mt-1">
                             <select id="form-font-family" class="form-select">
@@ -478,6 +464,7 @@
                 `;
             }
             
+            // 各種値の反映
             formTitle.value = menuData.title;
             const titleFontSizeDisplay = document.querySelector('#title-form-group .font-size-display');
             if (titleFontSizeDisplay) titleFontSizeDisplay.textContent = `${menuData.titleFontSize}px`;
@@ -496,6 +483,7 @@
             const pLineDisplay = document.querySelector('#global-style-p-line .line-height-display');
             if (pLineDisplay) pLineDisplay.textContent = menuData.styles.lineHeightP.toFixed(0) + 'px';
             
+            // 平均フォントサイズ計算
             let totalH2 = 0;
             let countH2 = menuData.categories.length;
             const h2FontDisplay = document.querySelector('#global-style-h2-font .line-height-display');
@@ -523,8 +511,8 @@
                 if (pFontDisplay) pFontDisplay.textContent = 'N/A';
             }
 
+            // カテゴリリストの生成
             categoriesFormList.innerHTML = '';
-
             menuData.categories.forEach((category) => {
                 const categoryDiv = document.createElement('div');
                 categoryDiv.className = 'border border-gray-300 rounded-lg p-4 mb-4 bg-white';
@@ -577,7 +565,7 @@
             initSortable();
         }
         
-        // === 4. SortableJS (v20と同じ) ===
+        // === 4. SortableJS (ドラッグアンドドロップ) ===
         function initSortable() {
             new Sortable(categoriesFormList, {
                 handle: '.cat-handle', animation: 150, ghostClass: 'sortable-ghost',
@@ -604,20 +592,25 @@
             });
         }
 
-        // === 5. 再描画 (v20と同じ) ===
+        // === 5. 再描画統括 ===
         function renderAll() {
             updateCanvasStyle(); 
             renderPreview();     
             renderForm();        
         }
         
-        // === 6. (v22) PDF出力関数 (v20の高解像度キャプチャロジックに戻す) ===
+        // === 6. PDF出力 (GitHub Pages対策済) ===
         async function handleExportPDF() {
-            exportPdfBtn.textContent = 'PDFを生成中...';
+            exportPdfBtn.textContent = 'フォント確認中...';
             exportPdfBtn.disabled = true;
 
             try {
-                // --- 高解像度化のためのスケール計算 ---
+                // 【重要】Webフォントの読み込み完了を待機 (GitHub Pages対策)
+                await document.fonts.ready;
+
+                exportPdfBtn.textContent = 'PDF生成中...';
+
+                // 高解像度化のためのスケール計算
                 const DPI = 300; 
                 const MM_PER_INCH = 25.4;
                 const canvasWidthMM = menuData.styles.canvasWidth;
@@ -625,16 +618,18 @@
                 const screenCanvasWidthPx = canvasEl.offsetWidth;
                 const scale = pdfCanvasWidthPx / screenCanvasWidthPx;
                 
-                // 1. 高解像度スクリーンショットを撮影
+                // html2canvasの設定
                 const canvas = await html2canvas(canvasEl, { 
                     scale: scale, 
                     allowTaint: true, 
-                    useCORS: true 
+                    useCORS: true, // クロスオリジン対策
+                    logging: false, // ログ無効化
+                    removeContainer: true,
                 });
                 
                 const imgData = canvas.toDataURL('image/png');
 
-                // 2. jsPDF (A4縦: 210 x 297 mm)
+                // jsPDF生成 (A4縦)
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
                     orientation: 'portrait',
@@ -644,33 +639,31 @@
                 
                 const a4Width = 210;
                 const a4Height = 297;
-                
                 const canvasHeightMM = menuData.styles.canvasHeight;
                 
-                // (v16) 中央配置のためのマージン計算
+                // 中央配置のマージン計算
                 const marginX = (a4Width / 2 - canvasWidthMM) / 2; // 左マージン
-                const marginY = (a4Height - canvasHeightMM) / 2; // 上下マージン
+                const marginY = (a4Height - canvasHeightMM) / 2;   // 上下マージン
 
-                // 3. 2面を貼り付け
-                // 1枚目 (左)
+                // 画像貼り付け (A4に2面付け)
+                // 左側
                 pdf.addImage(imgData, 'PNG', marginX, marginY, canvasWidthMM, canvasHeightMM);
-                // 2枚目 (右)
+                // 右側
                 pdf.addImage(imgData, 'PNG', a4Width / 2 + marginX, marginY, canvasWidthMM, canvasHeightMM);
                 
-                // 4. ダウンロード
+                // ダウンロード
                 pdf.save('お品書き.pdf');
 
             } catch (error) {
                 console.error("PDF generation failed:", error);
-                alert("PDFの生成に失敗しました。");
+                alert("PDFの生成に失敗しました。\nフォントや画像の読み込みエラーの可能性があります。");
             } finally {
                 exportPdfBtn.textContent = 'PDFとして出力 (A4・2面)';
                 exportPdfBtn.disabled = false;
             }
         }
 
-
-        // === 7. イベントリスナー (v20のロジックに戻す) ===
+        // === 7. イベントリスナー ===
         function setupListeners() {
             
             formContentWrapper.addEventListener('input', (e) => {
@@ -678,8 +671,8 @@
                 
                 if (target.id === 'form-font-family') {
                     menuData.styles.fontFamily = target.value;
-                    updateCanvasStyle(); // (v22) v20のロジックに戻す
-                    renderPreview();     // (v22) プレビューも更新
+                    updateCanvasStyle(); 
+                    renderPreview();     
                     return;
                 }
                 
@@ -717,7 +710,7 @@
             });
             
             formContentWrapper.addEventListener('click', (e) => {
-                
+                // 削除ボタン
                 const btnDelete = e.target.closest('.btn-control-danger');
                 if (btnDelete) {
                     const deleteCatId = btnDelete.dataset.deleteCatId;
@@ -738,6 +731,7 @@
                     }
                 }
                 
+                // 微調整ボタン
                 const btnControl = e.target.closest('.btn-control');
                 if (btnControl) {
                     const target = btnControl; 
@@ -846,10 +840,8 @@
                         if (renderAllNeeded) {
                             renderAll(); 
                         } else if (fontSizeChanged || lineHeightChanged) {
-                            // (v22) v20 のロジックに戻す
                             renderPreview(); 
                         }
-                        // (v22) canvasSizeChanged は updateCanvasStyle() が処理
                     }
                     return; 
                 }
@@ -863,6 +855,7 @@
                 
                 const catId = originalTarget.dataset.catId;
 
+                // 品名追加
                 if (catId && originalTarget.classList.contains('btn-secondary')) {
                     const category = menuData.categories.find(c => c.id === catId);
                     if (category) {
@@ -875,6 +868,7 @@
                         renderAll(); 
                     }
                 }
+                // 中見出し追加
                 else if (originalTarget.id === 'add-category-btn') {
                      menuData.categories.push({ 
                         id: crypto.randomUUID(),
@@ -885,6 +879,7 @@
                     });
                     renderAll(); 
                 }
+                // 選択削除
                 else if (originalTarget.id === 'delete-selected-btn') {
                     menuData.categories.forEach(category => {
                         category.items = category.items.filter(item => !item.isChecked);
@@ -895,11 +890,10 @@
             });
             
             exportPdfBtn.addEventListener('click', handleExportPDF);
-             // (v22) v20 のロジックに戻す
             window.addEventListener('resize', updateCanvasStyle);
         }
 
-        // === 8. アプリの初回起動 ===
+        // === 8. 初期化 ===
         renderAll();
         setupListeners();
         
