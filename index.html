@@ -1250,6 +1250,8 @@ async function handleExportPDF() {
         console.log(`PDF Export: isMobile=${isMobile}, pixelRatio=${pixelRatio}, canvasSize=${fw}x${fh}px`);
 
         let dataUrl;
+
+        // Try htmlToImage first (better quality)
         try {
             dataUrl = await htmlToImage.toPng(canvasEl, {
                 quality: 1.0,
@@ -1257,27 +1259,45 @@ async function handleExportPDF() {
                 cacheBust: true,
                 style: { margin: '0' }
             });
-            console.log('Canvas capture successful');
-        } catch (captureErr) {
-            console.error('Canvas capture failed:', captureErr);
+            console.log('htmlToImage capture successful');
+        } catch (htmlErr) {
+            console.error('htmlToImage failed:', htmlErr);
+            console.log('Falling back to canvas.toDataURL()...');
 
-            // Fallback for mobile: try with even lower pixelRatio
-            if (isMobile && pixelRatio > 1.0) {
-                console.log('Trying fallback with lower pixelRatio (1.5)...');
-                try {
-                    dataUrl = await htmlToImage.toPng(canvasEl, {
-                        quality: 0.95,
-                        pixelRatio: 1.5,
-                        cacheBust: true,
-                        style: { margin: '0' }
-                    });
-                    console.log('Fallback canvas capture successful');
-                } catch (fallbackErr) {
-                    console.error('Fallback also failed:', fallbackErr);
-                    throw new Error(`キャンバス取得エラー: ${fallbackErr.message}`);
+            // Fallback: Use native canvas.toDataURL() for better mobile compatibility
+            try {
+                // Create a temporary canvas with proper dimensions
+                const tempCanvas = document.createElement('canvas');
+                const ctx = tempCanvas.getContext('2d', { willReadFrequently: true });
+
+                tempCanvas.width = fw;
+                tempCanvas.height = fh;
+
+                // Set white background
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, fw, fh);
+
+                // Draw the canvas element
+                await new Promise((resolve) => {
+                    setTimeout(() => {
+                        try {
+                            ctx.drawImage(canvasEl, 0, 0);
+                            dataUrl = tempCanvas.toDataURL('image/png', 0.95);
+                            resolve();
+                        } catch (drawErr) {
+                            console.error('Canvas draw failed:', drawErr);
+                            resolve(); // Continue anyway, might still work
+                        }
+                    }, 100);
+                });
+
+                if (!dataUrl) {
+                    dataUrl = tempCanvas.toDataURL('image/png', 0.95);
                 }
-            } else {
-                throw new Error(`キャンバス取得エラー: ${captureErr.message}`);
+                console.log('canvas.toDataURL fallback successful');
+            } catch (fallbackErr) {
+                console.error('Fallback also failed:', fallbackErr);
+                throw new Error(`キャンバス取得に失敗: htmlToImage と canvas.toDataURL の両方が使えません`);
             }
         }
 
