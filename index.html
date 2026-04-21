@@ -1222,6 +1222,9 @@ async function handleExportPDF() {
     btns.forEach(b => { b.textContent = '処理中…'; b.disabled = true; });
 
     try {
+        // Detect if mobile
+        const isMobile = window.innerWidth < 768;
+
         await document.fonts.ready;
 
         try {
@@ -1241,38 +1244,79 @@ async function handleExportPDF() {
 
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-        const dataUrl = await htmlToImage.toPng(canvasEl, {
-            quality: 1.0,
-            pixelRatio: 300 / 96,
-            cacheBust: true,
-            style: { margin: '0' }
-        });
+        // Use lower pixelRatio on mobile to avoid memory issues
+        // Mobile: 2.0, Desktop: 3.125 (300/96)
+        const pixelRatio = isMobile ? 2.0 : (300 / 96);
+        console.log(`PDF Export: isMobile=${isMobile}, pixelRatio=${pixelRatio}, canvasSize=${fw}x${fh}px`);
+
+        let dataUrl;
+        try {
+            dataUrl = await htmlToImage.toPng(canvasEl, {
+                quality: 1.0,
+                pixelRatio: pixelRatio,
+                cacheBust: true,
+                style: { margin: '0' }
+            });
+            console.log('Canvas capture successful');
+        } catch (captureErr) {
+            console.error('Canvas capture failed:', captureErr);
+
+            // Fallback for mobile: try with even lower pixelRatio
+            if (isMobile && pixelRatio > 1.0) {
+                console.log('Trying fallback with lower pixelRatio (1.5)...');
+                try {
+                    dataUrl = await htmlToImage.toPng(canvasEl, {
+                        quality: 0.95,
+                        pixelRatio: 1.5,
+                        cacheBust: true,
+                        style: { margin: '0' }
+                    });
+                    console.log('Fallback canvas capture successful');
+                } catch (fallbackErr) {
+                    console.error('Fallback also failed:', fallbackErr);
+                    throw new Error(`キャンバス取得エラー: ${fallbackErr.message}`);
+                }
+            } else {
+                throw new Error(`キャンバス取得エラー: ${captureErr.message}`);
+            }
+        }
 
         canvasEl.style.transform = `scale(${currentScale})`;
         canvasScaleWrapper.style.width  = `${fw * currentScale}px`;
         canvasScaleWrapper.style.height = `${fh * currentScale}px`;
 
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        try {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-        const a4W = 210, a4H = 297;
-        const cw = menuData.styles.canvasWidth;
-        const ch = menuData.styles.canvasHeight;
-        const mx = (a4W / 2 - cw) / 2;
-        const my = (a4H - ch) / 2;
+            const a4W = 210, a4H = 297;
+            const cw = menuData.styles.canvasWidth;
+            const ch = menuData.styles.canvasHeight;
+            const mx = (a4W / 2 - cw) / 2;
+            const my = (a4H - ch) / 2;
 
-        pdf.addImage(dataUrl, 'PNG', mx,           my, cw, ch);
-        pdf.addImage(dataUrl, 'PNG', a4W / 2 + mx, my, cw, ch);
-        pdf.save('お品書き.pdf');
+            pdf.addImage(dataUrl, 'PNG', mx,           my, cw, ch);
+            pdf.addImage(dataUrl, 'PNG', a4W / 2 + mx, my, cw, ch);
+            pdf.save('お品書き.pdf');
+            console.log('PDF save successful');
+        } catch (pdfErr) {
+            console.error('PDF generation failed:', pdfErr);
+            throw new Error(`PDF生成エラー: ${pdfErr.message}`);
+        }
 
     } catch (err) {
-        console.error('PDF error:', err);
+        console.error('PDF export error:', err);
         const fw = menuData.styles.canvasWidth  * MM_TO_PX;
         const fh = menuData.styles.canvasHeight * MM_TO_PX;
         canvasEl.style.transform = `scale(${currentScale})`;
         canvasScaleWrapper.style.width  = `${fw * currentScale}px`;
         canvasScaleWrapper.style.height = `${fh * currentScale}px`;
-        alert('PDF生成に失敗しました。\n「ブラウザ印刷」ボタンをお試しください。');
+
+        let errorMsg = 'PDF生成に失敗しました。\n「ブラウザ印刷」ボタンをお試しください。';
+        if (err.message) {
+            errorMsg += `\n\n詳細: ${err.message}`;
+        }
+        alert(errorMsg);
     } finally {
         btns.forEach(b => { b.textContent = '📸 PDF出力（推奨）'; b.disabled = false; });
     }
