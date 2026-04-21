@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お品書きエディタv3</title>
+    <title>お品書きエディタv4</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Ten+Mincho&display=swap" rel="stylesheet">
@@ -1246,12 +1246,12 @@ async function handleExportPDF() {
 
         console.log(`PDF Export: isMobile=${isMobile}, canvasSize=${fw}x${fh}px`);
 
-        let dataUrl;
+        let capturedCanvas;
 
         // Use html2canvas with iOS Safari optimizations
         try {
             console.log('Attempting html2canvas capture...');
-            const canvas = await html2canvas(canvasEl, {
+            capturedCanvas = await html2canvas(canvasEl, {
                 scale: 1,  // iOS メモリ制限対策：低解像度
                 useCORS: true,  // フォント対応
                 logging: false,
@@ -1270,7 +1270,6 @@ async function handleExportPDF() {
                     }
                 }
             });
-            dataUrl = canvas.toDataURL('image/png');
             console.log('html2canvas capture successful');
         } catch (err) {
             console.error('html2canvas failed:', err);
@@ -1291,8 +1290,12 @@ async function handleExportPDF() {
             const mx = (a4W / 2 - cw) / 2;
             const my = (a4H - ch) / 2;
 
-            pdf.addImage(dataUrl, 'PNG', mx,           my, cw, ch);
-            pdf.addImage(dataUrl, 'PNG', a4W / 2 + mx, my, cw, ch);
+            // Convert canvas to JPEG data URL (more compatible than PNG)
+            const dataUrl = capturedCanvas.toDataURL('image/jpeg', 0.95);
+            console.log('Canvas to JPEG conversion successful');
+
+            pdf.addImage(dataUrl, 'JPEG', mx,           my, cw, ch);
+            pdf.addImage(dataUrl, 'JPEG', a4W / 2 + mx, my, cw, ch);
             pdf.save('お品書き.pdf');
             console.log('PDF save successful');
         } catch (pdfErr) {
