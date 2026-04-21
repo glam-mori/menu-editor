@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お品書きエディタv4</title>
+    <title>お品書きエディタv5</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Ten+Mincho&display=swap" rel="stylesheet">
@@ -669,18 +669,60 @@
 
         /* ===== PRINT ===== */
         @media print {
-            #app-header, #app-footer, #tab-bar { display: none !important; }
+            * { margin: 0; padding: 0; }
+            body {
+                background: white !important;
+                width: 210mm;
+                height: 297mm;
+                overflow: visible;
+            }
+
+            /* Hide everything except canvas */
+            #app-header, #app-footer, #tab-bar, #form-wrapper, #output-tab-panel {
+                display: none !important;
+            }
             body * { visibility: hidden; }
-            #canvas, #canvas * { visibility: visible; }
+
+            /* Show canvas and its contents */
+            #preview-wrapper,
+            #canvas-scale-wrapper,
+            #canvas,
+            #canvas *,
+            #preview-wrapper *,
+            #canvas-scale-wrapper * {
+                visibility: visible !important;
+                display: block !important;
+            }
+
+            /* Layout 2 canvases side by side on A4 */
+            #preview-wrapper {
+                width: 210mm;
+                height: 297mm;
+                display: flex !important;
+                flex-wrap: wrap;
+                justify-content: center;
+                align-items: center;
+                gap: 0;
+                position: relative;
+            }
+
+            #canvas-scale-wrapper {
+                flex: 0 0 calc(50% - 5mm);
+                display: flex !important;
+                justify-content: center;
+                align-items: center;
+                page-break-inside: avoid;
+            }
+
             #canvas {
-                position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                border: none !important;
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                border: 1px solid #999 !important;
                 box-shadow: none !important;
                 transform: none !important;
+                background: white !important;
             }
-            body { background: white !important; }
         }
     </style>
 </head>
@@ -1532,7 +1574,20 @@ function setupListeners() {
         if (e.target.id === 'export-pdf-btn' || e.target.id === 'export-pdf-btn-mobile') {
             handleExportPDF();
         } else if (e.target.id === 'browser-print-btn' || e.target.id === 'browser-print-btn-mobile') {
-            window.print();
+            // Duplicate canvas for side-by-side print layout
+            const originalScaleWrapper = document.getElementById('canvas-scale-wrapper');
+            const clone = originalScaleWrapper.cloneNode(true);
+            clone.id = 'canvas-scale-wrapper-clone';
+            originalScaleWrapper.parentElement.appendChild(clone);
+
+            // Print after a short delay
+            setTimeout(() => {
+                window.print();
+                // Remove clone after print
+                setTimeout(() => {
+                    clone.remove();
+                }, 100);
+            }, 100);
         }
     });
 
