@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お品書きエディタv5</title>
+    <title>お品書きエディタv6</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Ten+Mincho&display=swap" rel="stylesheet">
@@ -669,11 +669,10 @@
 
         /* ===== PRINT ===== */
         @media print {
-            * { margin: 0; padding: 0; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
                 background: white !important;
                 width: 210mm;
-                height: 297mm;
                 overflow: visible;
             }
 
@@ -683,45 +682,55 @@
             }
             body * { visibility: hidden; }
 
-            /* Show canvas and its contents */
+            /* Show preview-wrapper and all its children */
             #preview-wrapper,
-            #canvas-scale-wrapper,
-            #canvas,
-            #canvas *,
-            #preview-wrapper *,
-            #canvas-scale-wrapper * {
+            #preview-wrapper * {
                 visibility: visible !important;
-                display: block !important;
+            }
+
+            /* Show canvas and its contents */
+            #canvas,
+            #canvas * {
+                visibility: visible !important;
             }
 
             /* Layout 2 canvases side by side on A4 */
             #preview-wrapper {
-                width: 210mm;
-                height: 297mm;
-                display: flex !important;
-                flex-wrap: wrap;
-                justify-content: center;
-                align-items: center;
-                gap: 0;
-                position: relative;
+                width: 210mm !important;
+                display: block !important;
+                text-align: center !important;
+                font-size: 0;
             }
 
             #canvas-scale-wrapper {
-                flex: 0 0 calc(50% - 5mm);
-                display: flex !important;
-                justify-content: center;
-                align-items: center;
+                display: inline-block !important;
+                width: 48% !important;
+                vertical-align: top !important;
+                margin: 1% !important;
+                font-size: 16px;
+                page-break-inside: avoid;
+            }
+
+            #canvas-scale-wrapper-clone {
+                display: inline-block !important;
+                width: 48% !important;
+                vertical-align: top !important;
+                margin: 1% !important;
+                font-size: 16px;
                 page-break-inside: avoid;
             }
 
             #canvas {
+                display: block !important;
                 position: relative !important;
                 top: auto !important;
                 left: auto !important;
-                border: 1px solid #999 !important;
+                border: 1px solid #333 !important;
                 box-shadow: none !important;
                 transform: none !important;
                 background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
         }
     </style>
@@ -1576,18 +1585,25 @@ function setupListeners() {
         } else if (e.target.id === 'browser-print-btn' || e.target.id === 'browser-print-btn-mobile') {
             // Duplicate canvas for side-by-side print layout
             const originalScaleWrapper = document.getElementById('canvas-scale-wrapper');
+            const previewWrapper = document.getElementById('preview-wrapper');
+
+            // Create a new wrapper for the clone
             const clone = originalScaleWrapper.cloneNode(true);
             clone.id = 'canvas-scale-wrapper-clone';
-            originalScaleWrapper.parentElement.appendChild(clone);
 
-            // Print after a short delay
+            // Append clone to preview wrapper
+            previewWrapper.appendChild(clone);
+            console.log('Canvas cloned for print, total wrappers:', previewWrapper.children.length);
+
+            // Print after a short delay to allow DOM to update
             setTimeout(() => {
                 window.print();
-                // Remove clone after print
+                // Remove clone after print dialog closes
                 setTimeout(() => {
                     clone.remove();
-                }, 100);
-            }, 100);
+                    console.log('Clone removed after print');
+                }, 500);
+            }, 200);
         }
     });
 
