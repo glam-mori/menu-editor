@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お品書きエディタ</title>
+    <title>お品書きエディタ2</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Ten+Mincho&display=swap" rel="stylesheet">
@@ -1245,59 +1245,53 @@ async function handleExportPDF() {
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
         // Use lower pixelRatio on mobile to avoid memory issues
-        // Mobile: 2.0, Desktop: 3.125 (300/96)
-        const pixelRatio = isMobile ? 2.0 : (300 / 96);
+        // Mobile: 1.5, Desktop: 3.125 (300/96)
+        const pixelRatio = isMobile ? 1.5 : (300 / 96);
         console.log(`PDF Export: isMobile=${isMobile}, pixelRatio=${pixelRatio}, canvasSize=${fw}x${fh}px`);
 
         let dataUrl;
 
-        // Try htmlToImage first (better quality)
+        // Try htmlToImage.toCanvas first (converts to actual canvas object)
         try {
-            dataUrl = await htmlToImage.toPng(canvasEl, {
-                quality: 1.0,
+            console.log('Attempting htmlToImage.toCanvas()...');
+            const canvas = await htmlToImage.toCanvas(canvasEl, {
                 pixelRatio: pixelRatio,
                 cacheBust: true,
                 style: { margin: '0' }
             });
-            console.log('htmlToImage capture successful');
-        } catch (htmlErr) {
-            console.error('htmlToImage failed:', htmlErr);
-            console.log('Falling back to canvas.toDataURL()...');
+            dataUrl = canvas.toDataURL('image/png');
+            console.log('htmlToImage.toCanvas successful');
+        } catch (err1) {
+            console.error('toCanvas failed, trying toPng:', err1);
 
-            // Fallback: Use native canvas.toDataURL() for better mobile compatibility
+            // Fallback: Try toPng directly
             try {
-                // Create a temporary canvas with proper dimensions
-                const tempCanvas = document.createElement('canvas');
-                const ctx = tempCanvas.getContext('2d', { willReadFrequently: true });
-
-                tempCanvas.width = fw;
-                tempCanvas.height = fh;
-
-                // Set white background
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, fw, fh);
-
-                // Draw the canvas element
-                await new Promise((resolve) => {
-                    setTimeout(() => {
-                        try {
-                            ctx.drawImage(canvasEl, 0, 0);
-                            dataUrl = tempCanvas.toDataURL('image/png', 0.95);
-                            resolve();
-                        } catch (drawErr) {
-                            console.error('Canvas draw failed:', drawErr);
-                            resolve(); // Continue anyway, might still work
-                        }
-                    }, 100);
+                const pngData = await htmlToImage.toPng(canvasEl, {
+                    quality: 1.0,
+                    pixelRatio: pixelRatio,
+                    cacheBust: true,
+                    style: { margin: '0' }
                 });
+                dataUrl = pngData;
+                console.log('htmlToImage.toPng successful');
+            } catch (err2) {
+                console.error('toPng also failed:', err2);
 
-                if (!dataUrl) {
-                    dataUrl = tempCanvas.toDataURL('image/png', 0.95);
+                // Last fallback: try toJpeg with lower quality
+                try {
+                    console.log('Trying htmlToImage.toJpeg()...');
+                    const jpegData = await htmlToImage.toJpeg(canvasEl, {
+                        quality: 0.85,
+                        pixelRatio: 1.0,
+                        cacheBust: true,
+                        style: { margin: '0' }
+                    });
+                    dataUrl = jpegData;
+                    console.log('htmlToImage.toJpeg successful');
+                } catch (err3) {
+                    console.error('All htmlToImage methods failed:', err3);
+                    throw new Error(`PDF作成失敗: ブラウザ印刷をお試しください`);
                 }
-                console.log('canvas.toDataURL fallback successful');
-            } catch (fallbackErr) {
-                console.error('Fallback also failed:', fallbackErr);
-                throw new Error(`キャンバス取得に失敗: htmlToImage と canvas.toDataURL の両方が使えません`);
             }
         }
 
