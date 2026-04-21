@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お品書きエディタv6</title>
+    <title>お品書きエディタv7</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Ten+Mincho&display=swap" rel="stylesheet">
@@ -651,6 +651,17 @@
             background: var(--bg-panel);
         }
 
+        /* Mobile: Hide PDF button, show only browser print */
+        @media (max-width: 768px) {
+            #export-pdf-btn-mobile {
+                display: none !important;
+            }
+            #output-tab-panel p {
+                display: none !important;
+            }
+        }
+        }
+
         /* ===== FOOTER ===== */
         #app-footer {
             flex-shrink: 0;
@@ -731,6 +742,14 @@
                 background: white !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                overflow: visible !important;
+                width: 100% !important;
+                min-height: 200mm !important;
+            }
+
+            #canvas-content {
+                display: block !important;
+                overflow: visible !important;
             }
         }
     </style>
