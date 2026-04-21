@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お品書きエディタ2</title>
+    <title>お品書きエディタv3</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Ten+Mincho&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
@@ -1244,55 +1244,37 @@ async function handleExportPDF() {
 
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-        // Use lower pixelRatio on mobile to avoid memory issues
-        // Mobile: 1.5, Desktop: 3.125 (300/96)
-        const pixelRatio = isMobile ? 1.5 : (300 / 96);
-        console.log(`PDF Export: isMobile=${isMobile}, pixelRatio=${pixelRatio}, canvasSize=${fw}x${fh}px`);
+        console.log(`PDF Export: isMobile=${isMobile}, canvasSize=${fw}x${fh}px`);
 
         let dataUrl;
 
-        // Try htmlToImage.toCanvas first (converts to actual canvas object)
+        // Use html2canvas with iOS Safari optimizations
         try {
-            console.log('Attempting htmlToImage.toCanvas()...');
-            const canvas = await htmlToImage.toCanvas(canvasEl, {
-                pixelRatio: pixelRatio,
-                cacheBust: true,
-                style: { margin: '0' }
+            console.log('Attempting html2canvas capture...');
+            const canvas = await html2canvas(canvasEl, {
+                scale: 1,  // iOS メモリ制限対策：低解像度
+                useCORS: true,  // フォント対応
+                logging: false,
+                backgroundColor: '#ffffff',  // 透明背景を回避
+                windowHeight: fh,
+                windowWidth: fw,
+                onclone: (doc) => {
+                    // クローンされたDOM内の要素のスタイル調整
+                    const clonedCanvas = doc.getElementById('canvas');
+                    if (clonedCanvas) {
+                        clonedCanvas.style.display = 'block';
+                        clonedCanvas.style.visibility = 'visible';
+                        clonedCanvas.style.opacity = '1';
+                        clonedCanvas.style.position = 'relative';
+                        clonedCanvas.style.transform = 'none';
+                    }
+                }
             });
             dataUrl = canvas.toDataURL('image/png');
-            console.log('htmlToImage.toCanvas successful');
-        } catch (err1) {
-            console.error('toCanvas failed, trying toPng:', err1);
-
-            // Fallback: Try toPng directly
-            try {
-                const pngData = await htmlToImage.toPng(canvasEl, {
-                    quality: 1.0,
-                    pixelRatio: pixelRatio,
-                    cacheBust: true,
-                    style: { margin: '0' }
-                });
-                dataUrl = pngData;
-                console.log('htmlToImage.toPng successful');
-            } catch (err2) {
-                console.error('toPng also failed:', err2);
-
-                // Last fallback: try toJpeg with lower quality
-                try {
-                    console.log('Trying htmlToImage.toJpeg()...');
-                    const jpegData = await htmlToImage.toJpeg(canvasEl, {
-                        quality: 0.85,
-                        pixelRatio: 1.0,
-                        cacheBust: true,
-                        style: { margin: '0' }
-                    });
-                    dataUrl = jpegData;
-                    console.log('htmlToImage.toJpeg successful');
-                } catch (err3) {
-                    console.error('All htmlToImage methods failed:', err3);
-                    throw new Error(`PDF作成失敗: ブラウザ印刷をお試しください`);
-                }
-            }
+            console.log('html2canvas capture successful');
+        } catch (err) {
+            console.error('html2canvas failed:', err);
+            throw new Error(`キャンバス取得エラー: ${err.message}`);
         }
 
         canvasEl.style.transform = `scale(${currentScale})`;
