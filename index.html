@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お品書きエディタv8</title>
+    <title>お品書きエディタv9</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Ten+Mincho&display=swap" rel="stylesheet">
@@ -705,29 +705,29 @@
                 visibility: visible !important;
             }
 
-            /* Layout 2 canvases side by side on A4 */
+            /* Layout 2 canvases side by side on A4, centered vertically */
             #preview-wrapper {
                 width: 210mm !important;
-                display: block !important;
-                text-align: center !important;
-                font-size: 0;
+                height: 297mm !important;
+                display: flex !important;
+                flex-wrap: wrap;
+                justify-content: center;
+                align-items: center;
+                gap: 0;
+                font-size: 16px;
             }
 
             #canvas-scale-wrapper {
                 display: inline-block !important;
                 width: 48% !important;
-                vertical-align: top !important;
                 margin: 1% !important;
-                font-size: 16px;
                 page-break-inside: avoid;
             }
 
             #canvas-scale-wrapper-clone {
                 display: inline-block !important;
                 width: 48% !important;
-                vertical-align: top !important;
                 margin: 1% !important;
-                font-size: 16px;
                 page-break-inside: avoid;
             }
 
