@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お品書きエディタv7</title>
+    <title>お品書きエディタv8</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Ten+Mincho&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
@@ -1292,9 +1292,6 @@ async function handleExportPDF() {
     btns.forEach(b => { b.textContent = '処理中…'; b.disabled = true; });
 
     try {
-        // Detect if mobile
-        const isMobile = window.innerWidth < 768;
-
         await document.fonts.ready;
 
         try {
@@ -1314,78 +1311,38 @@ async function handleExportPDF() {
 
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-        console.log(`PDF Export: isMobile=${isMobile}, canvasSize=${fw}x${fh}px`);
-
-        let capturedCanvas;
-
-        // Use html2canvas with iOS Safari optimizations
-        try {
-            console.log('Attempting html2canvas capture...');
-            capturedCanvas = await html2canvas(canvasEl, {
-                scale: 1,  // iOS メモリ制限対策：低解像度
-                useCORS: true,  // フォント対応
-                logging: false,
-                backgroundColor: '#ffffff',  // 透明背景を回避
-                windowHeight: fh,
-                windowWidth: fw,
-                onclone: (doc) => {
-                    // クローンされたDOM内の要素のスタイル調整
-                    const clonedCanvas = doc.getElementById('canvas');
-                    if (clonedCanvas) {
-                        clonedCanvas.style.display = 'block';
-                        clonedCanvas.style.visibility = 'visible';
-                        clonedCanvas.style.opacity = '1';
-                        clonedCanvas.style.position = 'relative';
-                        clonedCanvas.style.transform = 'none';
-                    }
-                }
-            });
-            console.log('html2canvas capture successful');
-        } catch (err) {
-            console.error('html2canvas failed:', err);
-            throw new Error(`キャンバス取得エラー: ${err.message}`);
-        }
+        const dataUrl = await htmlToImage.toPng(canvasEl, {
+            quality: 1.0,
+            pixelRatio: 4.0,
+            cacheBust: true,
+            style: { margin: '0' }
+        });
 
         canvasEl.style.transform = `scale(${currentScale})`;
         canvasScaleWrapper.style.width  = `${fw * currentScale}px`;
         canvasScaleWrapper.style.height = `${fh * currentScale}px`;
 
-        try {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-            const a4W = 210, a4H = 297;
-            const cw = menuData.styles.canvasWidth;
-            const ch = menuData.styles.canvasHeight;
-            const mx = (a4W / 2 - cw) / 2;
-            const my = (a4H - ch) / 2;
+        const a4W = 210, a4H = 297;
+        const cw = menuData.styles.canvasWidth;
+        const ch = menuData.styles.canvasHeight;
+        const mx = (a4W / 2 - cw) / 2;
+        const my = (a4H - ch) / 2;
 
-            // Convert canvas to JPEG data URL (more compatible than PNG)
-            const dataUrl = capturedCanvas.toDataURL('image/jpeg', 0.95);
-            console.log('Canvas to JPEG conversion successful');
-
-            pdf.addImage(dataUrl, 'JPEG', mx,           my, cw, ch);
-            pdf.addImage(dataUrl, 'JPEG', a4W / 2 + mx, my, cw, ch);
-            pdf.save('お品書き.pdf');
-            console.log('PDF save successful');
-        } catch (pdfErr) {
-            console.error('PDF generation failed:', pdfErr);
-            throw new Error(`PDF生成エラー: ${pdfErr.message}`);
-        }
+        pdf.addImage(dataUrl, 'PNG', mx,           my, cw, ch);
+        pdf.addImage(dataUrl, 'PNG', a4W / 2 + mx, my, cw, ch);
+        pdf.save('お品書き.pdf');
 
     } catch (err) {
-        console.error('PDF export error:', err);
+        console.error('PDF error:', err);
         const fw = menuData.styles.canvasWidth  * MM_TO_PX;
         const fh = menuData.styles.canvasHeight * MM_TO_PX;
         canvasEl.style.transform = `scale(${currentScale})`;
         canvasScaleWrapper.style.width  = `${fw * currentScale}px`;
         canvasScaleWrapper.style.height = `${fh * currentScale}px`;
-
-        let errorMsg = 'PDF生成に失敗しました。\n「ブラウザ印刷」ボタンをお試しください。';
-        if (err.message) {
-            errorMsg += `\n\n詳細: ${err.message}`;
-        }
-        alert(errorMsg);
+        alert('PDF生成に失敗しました。\n「ブラウザ印刷」ボタンをお試しください。');
     } finally {
         btns.forEach(b => { b.textContent = '📸 PDF出力（推奨）'; b.disabled = false; });
     }
